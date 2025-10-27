@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Weavers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="FodyWeavers.xsd">
-  <Costura CreateTemporaryAssemblies="true" IncludeDebugSymbols="false" AddGACAssemblies="false">
-    <Unmanaged32>
-      SQLite.Interop.dll
-    </Unmanaged32>
-    <Unmanaged64>
-      SQLite.Interop.dll
-    </Unmanaged64>
-  </Costura>
+	<Costura CreateTemporaryAssemblies="true" IncludeDebugSymbols="false" AddGACAssemblies="false">
+		<Unmanaged32>
+			SQLite.Interop.dll
+		</Unmanaged32>
+		<Unmanaged64>
+			SQLite.Interop.dll
+		</Unmanaged64>
+	</Costura>
 </Weavers>

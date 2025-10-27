@@ -15,13 +15,13 @@ namespace GestionEmployes.Forms
         private Label lblPassword;
         private TextBox txtPassword;
         private Button btnLogin;
-        private Button btnCancel;
         private Label lblError;
+        private LinkLabel lblActivationInfo;
+        private Label lblSupport;
 
         public LoginForm()
         {
             InitializeComponent();
-            Theme.Apply(this);
             SetupForm();
         }
 
@@ -34,162 +34,135 @@ namespace GestionEmployes.Forms
             this.lblPassword = new Label();
             this.txtPassword = new TextBox();
             this.btnLogin = new Button();
-            this.btnCancel = new Button();
             this.lblError = new Label();
+            this.lblActivationInfo = new LinkLabel();
+            this.lblSupport = new Label();
 
             this.SuspendLayout();
 
-            // LoginForm - Modern gradient background
-            this.ClientSize = new Size(550, 650);
+            // LoginForm
+            this.ClientSize = new Size(500, 400);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.Text = "Connexion - Système de Gestion";
-            this.FormBorderStyle = FormBorderStyle.None;
-            this.BackColor = Theme.PrimaryColor;
+            this.Text = "Connexion - Gestion des Employés";
+            this.BackColor = Color.White;
 
-            // pnlContainer - Main background
+            // pnlContainer
             this.pnlContainer.Dock = DockStyle.Fill;
-            this.pnlContainer.BackColor = Theme.BackgroundColor;
-            this.pnlContainer.Padding = new Padding(40);
+            this.pnlContainer.BackColor = Color.White;
+            this.pnlContainer.Padding = new Padding(30);
             this.Controls.Add(this.pnlContainer);
 
-            // Create a centered card panel
-            var cardPanel = new Panel
-            {
-                Size = new Size(420, 480),
-                Location = new Point(65, 85),
-                BackColor = Theme.CardBackground,
-                Padding = new Padding(40, 30, 40, 30)
-            };
-            this.pnlContainer.Controls.Add(cardPanel);
-
-            // Logo/Icon area (decorative)
-            var iconPanel = new Panel
-            {
-                Size = new Size(80, 80),
-                Location = new Point(170, 30),
-                BackColor = Theme.PrimaryColor
-            };
-            var iconLabel = new Label
-            {
-                Text = "🔐",
-                Font = new Font("Segoe UI", 32F),
-                ForeColor = Color.White,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Dock = DockStyle.Fill
-            };
-            iconPanel.Controls.Add(iconLabel);
-            cardPanel.Controls.Add(iconPanel);
-
-            // lblTitle - Modern title
-            this.lblTitle.Text = "Bienvenue";
-            this.lblTitle.Font = new Font("Segoe UI", 24F, FontStyle.Bold);
-            this.lblTitle.ForeColor = Theme.TextColor;
+            // lblTitle
+            this.lblTitle.Text = "Gestion des Employés";
+            this.lblTitle.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
+            this.lblTitle.ForeColor = Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
             this.lblTitle.AutoSize = false;
             this.lblTitle.TextAlign = ContentAlignment.MiddleCenter;
-            this.lblTitle.Location = new Point(40, 125);
-            this.lblTitle.Size = new Size(340, 40);
-            cardPanel.Controls.Add(this.lblTitle);
+            this.lblTitle.Location = new Point(50, 30);
+            this.lblTitle.Size = new Size(400, 40);
+            this.pnlContainer.Controls.Add(this.lblTitle);
 
             var lblSubtitle = new Label
             {
-                Text = "Connectez-vous à votre compte",
+                Text = "Système de gestion du personnel",
                 Font = new Font("Segoe UI", 10F, FontStyle.Regular),
-                ForeColor = Theme.TextSecondary,
+                ForeColor = Color.Gray,
                 AutoSize = false,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Location = new Point(40, 165),
-                Size = new Size(340, 25)
+                Location = new Point(50, 75),
+                Size = new Size(400, 25)
             };
-            cardPanel.Controls.Add(lblSubtitle);
+            this.pnlContainer.Controls.Add(lblSubtitle);
 
-            int startY = 210;
-            int spacing = 90;
+            int startY = 120;
 
-            // lblUsername - Modern label
+            // lblUsername
             this.lblUsername.Text = "Nom d'utilisateur";
-            this.lblUsername.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            this.lblUsername.ForeColor = Theme.TextColor;
-            this.lblUsername.Location = new Point(40, startY);
+            this.lblUsername.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            this.lblUsername.ForeColor = Color.Black;
+            this.lblUsername.Location = new Point(50, startY);
             this.lblUsername.AutoSize = true;
-            cardPanel.Controls.Add(this.lblUsername);
+            this.pnlContainer.Controls.Add(this.lblUsername);
 
-            // txtUsername - Modern textbox with better styling
-            this.txtUsername.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
-            this.txtUsername.Location = new Point(40, startY + 28);
-            this.txtUsername.Size = new Size(340, 35);
+            // txtUsername
+            this.txtUsername.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
+            this.txtUsername.Location = new Point(50, startY + 25);
+            this.txtUsername.Size = new Size(400, 30);
             this.txtUsername.BorderStyle = BorderStyle.FixedSingle;
             this.txtUsername.BackColor = Color.White;
-            this.txtUsername.ForeColor = Theme.TextColor;
-            cardPanel.Controls.Add(this.txtUsername);
+            this.txtUsername.ForeColor = Color.Black;
+            this.pnlContainer.Controls.Add(this.txtUsername);
 
-            // lblPassword - Modern label
+            // lblPassword
             this.lblPassword.Text = "Mot de passe";
-            this.lblPassword.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            this.lblPassword.ForeColor = Theme.TextColor;
-            this.lblPassword.Location = new Point(40, startY + spacing);
+            this.lblPassword.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            this.lblPassword.ForeColor = Color.Black;
+            this.lblPassword.Location = new Point(50, startY + 80);
             this.lblPassword.AutoSize = true;
-            cardPanel.Controls.Add(this.lblPassword);
+            this.pnlContainer.Controls.Add(this.lblPassword);
 
-            // txtPassword - Modern password field
-            this.txtPassword.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
-            this.txtPassword.Location = new Point(40, startY + spacing + 28);
-            this.txtPassword.Size = new Size(340, 35);
+            // txtPassword
+            this.txtPassword.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
+            this.txtPassword.Location = new Point(50, startY + 105);
+            this.txtPassword.Size = new Size(400, 30);
             this.txtPassword.UseSystemPasswordChar = true;
             this.txtPassword.BorderStyle = BorderStyle.FixedSingle;
             this.txtPassword.BackColor = Color.White;
-            this.txtPassword.ForeColor = Theme.TextColor;
-            cardPanel.Controls.Add(this.txtPassword);
+            this.txtPassword.ForeColor = Color.Black;
+            this.pnlContainer.Controls.Add(this.txtPassword);
 
-            // lblError - Modern error message
+            // lblError
             this.lblError.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
-            this.lblError.ForeColor = Theme.DangerColor;
-            this.lblError.Location = new Point(40, startY + spacing + 70);
-            this.lblError.Size = new Size(340, 20);
+            this.lblError.ForeColor = Color.Red;
+            this.lblError.Location = new Point(50, startY + 150);
+            this.lblError.Size = new Size(400, 20);
             this.lblError.TextAlign = ContentAlignment.MiddleCenter;
             this.lblError.Visible = false;
-            cardPanel.Controls.Add(this.lblError);
+            this.pnlContainer.Controls.Add(this.lblError);
 
-            // btnLogin - Modern primary button
+            // btnLogin
             this.btnLogin.Text = "Se connecter";
-            this.btnLogin.Name = "btnLogin";
-            this.btnLogin.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
-            this.btnLogin.BackColor = Theme.PrimaryColor;
+            this.btnLogin.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            this.btnLogin.BackColor = Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
             this.btnLogin.ForeColor = Color.White;
             this.btnLogin.FlatStyle = FlatStyle.Flat;
             this.btnLogin.FlatAppearance.BorderSize = 0;
-            this.btnLogin.Location = new Point(40, startY + spacing + 100);
-            this.btnLogin.Size = new Size(340, 45);
+            this.btnLogin.Location = new Point(50, startY + 180);
+            this.btnLogin.Size = new Size(400, 40);
             this.btnLogin.Cursor = Cursors.Hand;
-            cardPanel.Controls.Add(this.btnLogin);
+            this.pnlContainer.Controls.Add(this.btnLogin);
 
+            // lblActivationInfo
+            this.lblActivationInfo.Text = "🔑 Procédure d'activation";
+            this.lblActivationInfo.Font = new Font("Segoe UI", 8F, FontStyle.Regular);
+            this.lblActivationInfo.LinkColor = Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
+            this.lblActivationInfo.Location = new Point(50, startY + 240);
+            this.lblActivationInfo.Size = new Size(400, 20);
+            this.lblActivationInfo.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblActivationInfo.Click += LblActivationInfo_Click;
+            this.pnlContainer.Controls.Add(this.lblActivationInfo);
 
-            // Footer text
-            var lblFooter = new Label
-            {
-                Text = "© 2025 Système de Gestion des Employés",
-                Font = new Font("Segoe UI", 8F, FontStyle.Regular),
-                ForeColor = Theme.TextSecondary,
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Location = new Point(65, 580),
-                Size = new Size(420, 20)
-            };
-            this.pnlContainer.Controls.Add(lblFooter);
+            // lblSupport
+            this.lblSupport.Text = $"📞 Support: {LicenseManager.GetSupportPhone()}";
+            this.lblSupport.Font = new Font("Segoe UI", 8F, FontStyle.Regular);
+            this.lblSupport.ForeColor = Color.Gray;
+            this.lblSupport.Location = new Point(50, startY + 265);
+            this.lblSupport.Size = new Size(400, 20);
+            this.lblSupport.TextAlign = ContentAlignment.MiddleCenter;
+            this.pnlContainer.Controls.Add(this.lblSupport);
 
             this.ResumeLayout(false);
         }
 
-
         private void SetupForm()
         {
-            // Ajouter les gestionnaires d'événements
+            // Gestionnaires d'événements
             this.btnLogin.Click += BtnLogin_Click;
-            this.btnCancel.Click += BtnCancel_Click;
             this.txtPassword.KeyPress += TxtPassword_KeyPress;
 
-            // Définir les valeurs par défaut pour le débogage
-            this.txtUsername.Text = "admin";
-            this.txtPassword.Text = "2025";
+            // Champs vides
+            this.txtUsername.Text = "";
+            this.txtPassword.Text = "";
         }
 
         private async void BtnLogin_Click(object sender, EventArgs e)
@@ -205,30 +178,20 @@ namespace GestionEmployes.Forms
                     return;
                 }
 
-                Console.WriteLine($"Tentative de connexion: {username}");
-
-                // Validate credentials using LicenseManager
+                // ✅ Validation simplifiée - vérifie seulement l'activation
                 if (LicenseManager.ValidateCredentials(username, password))
                 {
                     await LoadMainScreenAsync();
                 }
                 else
                 {
-                    ShowError("Identifiants invalides ou licence non trouvée");
-                    txtPassword.Clear();
-                    txtUsername.Focus();
+                    // Le message d'erreur est géré dans LicenseManager
                 }
             }
             catch (Exception ex)
             {
                 ShowError($"Erreur lors de la connexion: {ex.Message}");
-                Console.WriteLine($"Erreur Login: {ex}");
             }
-        }
-
-        private void BtnCancel_Click(object sender, EventArgs e)
-        {
-            Application.Exit();
         }
 
         private void TxtPassword_KeyPress(object sender, KeyPressEventArgs e)
@@ -240,19 +203,25 @@ namespace GestionEmployes.Forms
             }
         }
 
+        private void LblActivationInfo_Click(object sender, EventArgs e)
+        {
+            string activationInfo = LicenseManager.GetLicenseInfo();
+            MessageBox.Show(activationInfo, "PROCÉDURE D'ACTIVATION",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
         private async Task LoadMainScreenAsync()
         {
             try
             {
                 var mainForm = new MainForm();
-                // When MainForm closes, also close the hidden LoginForm to end the message loop
                 mainForm.FormClosed += (s, e) => this.Close();
                 this.Hide();
                 mainForm.Show();
             }
             catch (Exception ex)
             {
-                ShowError($"Erreur lors du chargement de l'application: {ex.Message}");
+                ShowError($"Erreur lors du chargement: {ex.Message}");
             }
         }
 

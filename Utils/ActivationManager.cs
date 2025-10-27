@@ -1,257 +1,193 @@
+using Microsoft.Win32;
 using System;
+using System.Linq;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 using System.Text;
-using System.IO;
 using System.Windows.Forms;
 
 namespace GestionEmployes.Utils
 {
-    public class ActivationManager
+    public static class ActivationManager
     {
-        private const string MasterKey = "KEY-GESTIONS-EMPLOYES";
-        private static readonly string ConfigPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "GestionEmployes",
-            "config.ini"
-        );
+        // ⚠️ IMPORTANT: This must EXACTLY match the Secret Salt in Key Manager!
+        private const string SECRET_SALT = "OthmaneEmploye";
+        private const string REGISTRY_PATH = @"Software\GestionEmployes";
 
-        public static string GetMacAddress()
-        {
-            try
-            {
-                NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
-                foreach (NetworkInterface adapter in nics)
-                {
-                    if (adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-                    {
-                        return adapter.GetPhysicalAddress().ToString();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Erreur MAC: " + ex.Message);
-            }
-            return "UNKNOWN";
-        }
-
-        public static string GenerateSoftwareLicense(string appName, string version)
-        {
-            string input = $"{appName}_{version}_{DateTime.Now:yyyy}";
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
-                return Convert.ToBase64String(hash).Substring(0, 24).ToUpper();
-            }
-        }
-
-        public static string GenerateActivationKey(string macAddress, string softwareLicense)
-        {
-            string input = $"{macAddress}_{softwareLicense}";
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
-                string hashString = Convert.ToBase64String(hash)
-                    .Replace("/", "").Replace("+", "").Substring(0, 32);
-                return FormatKey(hashString);
-            }
-        }
-
-        private static string FormatKey(string key)
-        {
-            StringBuilder formatted = new StringBuilder();
-            for (int i = 0; i < key.Length; i += 4)
-            {
-                if (i > 0) formatted.Append("-");
-                formatted.Append(key.Substring(i, Math.Min(4, key.Length - i)));
-            }
-            return formatted.ToString();
-        }
-
-        public static void SaveConfiguration(string macAddress, string softwareLicense, string activationKey)
-        {
-            try
-            {
-                string dir = Path.GetDirectoryName(ConfigPath);
-                if (!Directory.Exists(dir))
-                {
-                    Directory.CreateDirectory(dir);
-                }
-
-                string config = $"SOFTWARE_LICENSE={softwareLicense}\n" +
-                              $"ACTIVATION_KEY={activationKey}\n" +
-                              $"MAC_ADDRESS={macAddress}\n" +
-                              $"INSTALLATION_DATE={DateTime.Now:yyyy-MM-dd HH:mm:ss}\n" +
-                              $"ACTIVATED=1";
-
-                File.WriteAllText(ConfigPath, config);
-                Console.WriteLine("✅ Configuration sauvegardée: " + ConfigPath);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("❌ Erreur sauvegarde: " + ex.Message);
-            }
-        }
-
-        public static (string softwareLicense, string activationKey, string macAddress) LoadConfiguration()
-        {
-            try
-            {
-                if (File.Exists(ConfigPath))
-                {
-                    string[] lines = File.ReadAllLines(ConfigPath);
-                    string softwareLicense = "", activationKey = "", macAddress = "";
-
-                    foreach (string line in lines)
-                    {
-                        if (line.StartsWith("SOFTWARE_LICENSE=")) softwareLicense = line.Split('=')[1];
-                        if (line.StartsWith("ACTIVATION_KEY=")) activationKey = line.Split('=')[1];
-                        if (line.StartsWith("MAC_ADDRESS=")) macAddress = line.Split('=')[1];
-                    }
-
-                    return (softwareLicense, activationKey, macAddress);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("❌ Erreur chargement: " + ex.Message);
-            }
-            return ("", "", "");
-        }
-
-        // Générer la clé attendue pour cet ordinateur
-        public static string GetExpectedActivationKey()
-        {
-            string macAddress = GetMacAddress();
-            string softwareLicense = GenerateSoftwareLicense("GestionEmployes", "1.0");
-            return GenerateActivationKey(macAddress, softwareLicense);
-        }
-
-        // Valider une clé saisie
-        public static bool ValidateActivationKey(string enteredKey)
-        {
-            if (string.IsNullOrWhiteSpace(enteredKey)) return false;
-            return enteredKey.Equals(MasterKey, StringComparison.OrdinalIgnoreCase);
-        }
-
-        // Première installation: demander la clé
-        public static bool ShowActivationForm()
-        {
-            Form activationForm = new Form
-            {
-                Text = "Activation - GestionEmployes",
-                Width = 500,
-                Height = 280,
-                StartPosition = FormStartPosition.CenterScreen,
-                FormBorderStyle = FormBorderStyle.FixedDialog,
-                MaximizeBox = false,
-                MinimizeBox = false,
-                ControlBox = false
-            };
-
-            Label labelInfo = new Label
-            {
-                Text = "Bienvenue! Veuillez entrer votre clé d'activation:",
-                Location = new System.Drawing.Point(20, 20),
-                Width = 450,
-                Height = 40,
-                AutoSize = false
-            };
-
-            Label labelKey = new Label
-            {
-                Text = "Clé d'activation:",
-                Location = new System.Drawing.Point(20, 70),
-                Width = 150
-            };
-
-            TextBox txtKey = new TextBox
-            {
-                Location = new System.Drawing.Point(20, 100),
-                Width = 450,
-                Font = new System.Drawing.Font("Courier New", 12)
-            };
-
-            Button btnActivate = new Button
-            {
-                Text = "Activer",
-                Location = new System.Drawing.Point(200, 200),
-                Width = 100,
-                Height = 40
-            };
-
-            Button btnCancel = new Button
-            {
-                Text = "Annuler",
-                Location = new System.Drawing.Point(310, 200),
-                Width = 100,
-                Height = 40
-            };
-
-            bool isActivated = false;
-
-            btnActivate.Click += (s, e) =>
-            {
-                if (string.IsNullOrWhiteSpace(txtKey.Text))
-                {
-                    MessageBox.Show("Veuillez entrer une clé d'activation!", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                if (ValidateActivationKey(txtKey.Text))
-                {
-                    // Sauvegarder l'état activé (on peut stocker des placeholders pour compatibilité)
-                    SaveConfiguration("UNIVERSAL", "UNIVERSAL", MasterKey);
-                    MessageBox.Show("✅ Activation réussie!", "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    isActivated = true;
-                    activationForm.Close();
-                }
-                else
-                {
-                    MessageBox.Show("❌ Clé d'activation invalide!", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    txtKey.Clear();
-                    txtKey.Focus();
-                }
-            };
-
-            btnCancel.Click += (s, e) =>
-            {
-                activationForm.Close();
-            };
-
-            activationForm.Controls.Add(labelInfo);
-            activationForm.Controls.Add(labelKey);
-            activationForm.Controls.Add(txtKey);
-            activationForm.Controls.Add(btnActivate);
-            activationForm.Controls.Add(btnCancel);
-
-            activationForm.ShowDialog();
-            return isActivated;
-        }
-
-        // Vérifier la configuration au démarrage
         public static bool CheckActivation()
         {
             try
             {
-                if (File.Exists(ConfigPath))
+                if (IsActivated())
                 {
-                    var content = File.ReadAllText(ConfigPath);
-                    if (content.Contains("ACTIVATED=1"))
+                    return true;
+                }
+
+                // Show activation form
+                using (var activationForm = new Forms.ActivationForm())
+                {
+                    if (activationForm.ShowDialog() == DialogResult.OK)
                     {
-                        Console.WriteLine("✅ Activation déjà effectuée");
                         return true;
+                    }
+                    else
+                    {
+                        MessageBox.Show("L'application doit être activée pour fonctionner.",
+                                      "Activation Requise",
+                                      MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("⚠️ Erreur lecture activation: " + ex.Message);
+                MessageBox.Show($"Erreur d'activation: {ex.Message}", "Erreur",
+                              MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
             }
+        }
 
-            Console.WriteLine("📝 Première installation - Demande d'activation (clé universelle)");
-            return ShowActivationForm();
+        public static bool IsActivated()
+        {
+            try
+            {
+                string storedKey = GetStoredKey();
+                if (string.IsNullOrEmpty(storedKey))
+                    return false;
+
+                string machineId = GetMachineId();
+                string expectedKey = GenerateKey(machineId);
+
+                return storedKey == expectedKey;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static string GetMachineId()
+        {
+            try
+            {
+                // Method 1: Try MAC Address
+                string macAddress = GetMacAddress();
+                if (!string.IsNullOrEmpty(macAddress) && macAddress != "000000000000")
+                {
+                    return macAddress;
+                }
+
+                // Method 2: Fallback - Computer name + User name
+                string computerInfo = Environment.MachineName + "_" + Environment.UserName;
+
+                // Create a consistent hash
+                using (SHA256 sha256 = SHA256.Create())
+                {
+                    byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(computerInfo));
+                    return BitConverter.ToString(hash).Replace("-", "").Substring(0, 16);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Ultimate fallback
+                return "ERROR_" + Guid.NewGuid().ToString("N").Substring(0, 8);
+            }
+        }
+
+        private static string GetMacAddress()
+        {
+            try
+            {
+                var networkInterface = NetworkInterface.GetAllNetworkInterfaces()
+                    .FirstOrDefault(nic => nic.OperationalStatus == OperationalStatus.Up &&
+                                          nic.NetworkInterfaceType != NetworkInterfaceType.Loopback);
+
+                if (networkInterface != null)
+                {
+                    string mac = networkInterface.GetPhysicalAddress().ToString();
+                    return !string.IsNullOrEmpty(mac) ? mac : "000000000000";
+                }
+                return "000000000000";
+            }
+            catch
+            {
+                return "000000000000";
+            }
+        }
+
+        public static bool Activate(string activationKey)
+        {
+            try
+            {
+                string machineId = GetMachineId();
+                string expectedKey = GenerateKey(machineId);
+
+                // Debug: Show what's being compared
+                MessageBox.Show($"Machine ID: {machineId}\nExpected Key: {expectedKey}\nYour Key: {activationKey}",
+                              "Debug Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                if (activationKey == expectedKey)
+                {
+                    SaveKey(activationKey);
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur lors de l'activation: {ex.Message}", "Erreur",
+                              MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        // ✅ CETTE MÉTHODE DOIT ÊTRE IDENTIQUE À KeyGeneratorService
+        private static string GenerateKey(string machineId)
+        {
+            string data = machineId + SECRET_SALT;
+
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(data));
+                string base64Hash = Convert.ToBase64String(hash);
+
+                string rawKey = base64Hash.Replace("=", "").Replace("+", "").Replace("/", "");
+                rawKey = rawKey.Substring(0, 20);
+
+                return $"{rawKey.Substring(0, 4)}-{rawKey.Substring(4, 4)}-{rawKey.Substring(8, 4)}-{rawKey.Substring(12, 4)}";
+            }
+        }
+
+        private static void SaveKey(string activationKey)
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(REGISTRY_PATH))
+                {
+                    key.SetValue("ActivationKey", activationKey);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur sauvegarde clé: {ex.Message}", "Erreur",
+                              MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private static string GetStoredKey()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(REGISTRY_PATH))
+                {
+                    return key?.GetValue("ActivationKey") as string;
+                }
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

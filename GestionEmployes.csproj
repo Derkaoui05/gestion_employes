@@ -125,6 +125,12 @@
     <Compile Include="Forms\AbsenceForm.Designer.cs">
       <DependentUpon>AbsenceForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\ActivationForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ActivationForm.Designer.cs">
+      <DependentUpon>ActivationForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\AvanceForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -168,10 +174,14 @@
     <Compile Include="Services\IAvanceService.cs" />
     <Compile Include="Services\IEmployeService.cs" />
     <Compile Include="Services\ReportService.cs" />
+    <Compile Include="Utils\ActivationHelper.cs" />
     <Compile Include="Utils\ActivationManager.cs" />
     <Compile Include="Utils\DatabaseHelper.cs" />
     <Compile Include="Utils\LicenseManager.cs" />
     <Compile Include="Utils\Theme.cs" />
+    <EmbeddedResource Include="Forms\ActivationForm.resx">
+      <DependentUpon>ActivationForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
