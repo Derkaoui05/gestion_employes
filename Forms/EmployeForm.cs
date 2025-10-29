@@ -291,7 +291,6 @@ namespace GestionEmployes.Forms
             txtNom.Text = employe.Nom;
             txtPrenom.Text = employe.Prenom;
             txtUtilisateur.Text = employe.Utilisateur;
-            txtMotDePasse.Text = employe.MotDePasse.ToString();
             txtSalaire.Text = employe.Salaire?.ToString("N2") ?? "";
 
             txtCin.Enabled = false; // Disable CIN when updating
@@ -452,7 +451,6 @@ namespace GestionEmployes.Forms
                 txtNom.Text.Trim(),
                 txtPrenom.Text.Trim(),
                 txtUtilisateur.Text.Trim(),
-                motDePasse,
                 salaire
             );
         }

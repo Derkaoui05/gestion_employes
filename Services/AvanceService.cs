@@ -18,11 +18,81 @@ namespace GestionEmployes.Services
             _context = context;
         }
 
+        // 🔹 Ajouter une avance (version synchrone)
+        public bool AjouterAvance(Avance avance)
+        {
+            try
+            {
+                // ✅ Créer une nouvelle instance pour éviter les conflits
+                var nouvelleAvance = new Avance
+                {
+                    Montant = avance.Montant,
+                    DateAvance = avance.DateAvance,
+                    EmployeCin = avance.EmployeCin
+                };
+
+                _context.Avances.Add(nouvelleAvance);
+                _context.SaveChanges();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de l'ajout de l'avance : {ex.Message}");
+                return false;
+            }
+        }
+
+        // 🔹 Récupérer toutes les avances
+        public List<Avance> GetAllAvances()
+        {
+            try
+            {
+                return _context.Avances
+                    .Include(a => a.Employe)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors du chargement des avances : {ex.Message}");
+                return new List<Avance>();
+            }
+        }
+
+        // 🔹 Récupérer les avances d’un employé
+        public List<Avance> GetAvancesByEmploye(string employeCin)
+        {
+            return _context.Avances
+                .Include(a => a.Employe)
+                .Where(a => a.EmployeCin == employeCin)
+                .ToList();
+        }
+
+        // 🔹 Supprimer une avance
+        public bool SupprimerAvance(int id)
+        {
+            try
+            {
+                var avance = _context.Avances.Find(id);
+                if (avance == null) return false;
+
+                _context.Avances.Remove(avance);
+                _context.SaveChanges();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la suppression de l'avance : {ex.Message}");
+                return false;
+            }
+        }
+
+
+        // 🔹 Créer une avance (version asynchrone - CORRIGÉE)
         public async Task<Avance> CreateAvanceAsync(Avance avance)
         {
-            if (avance.Employe == null)
+            if (string.IsNullOrEmpty(avance.EmployeCin))
             {
-                throw new ArgumentException("L'employé est obligatoire.");
+                throw new ArgumentException("Le CIN de l'employé est obligatoire.");
             }
 
             if (avance.Montant <= 0)
@@ -30,20 +100,26 @@ namespace GestionEmployes.Services
                 throw new ArgumentException("Le montant doit être positif.");
             }
 
-            // S'assurer d'utiliser un Employe existant (éviter insertion involontaire)
-            if (avance.Employe != null)
+            // ✅ Vérifier que l'employé existe
+            var employeExiste = await _context.Employes
+                .AnyAsync(e => e.Cin == avance.EmployeCin);
+
+            if (!employeExiste)
             {
-                avance.EmployeCin = avance.Employe.Cin;
-                // Attacher l'employé existant au contexte sans le modifier
-                _context.Employes.Attach(avance.Employe);
+                throw new ArgumentException($"L'employé avec CIN {avance.EmployeCin} n'existe pas.");
             }
 
-            // Détacher la navigation pour éviter une réinsertion
-            avance.Employe = null;
+            // ✅ Créer une NOUVELLE instance
+            var nouvelleAvance = new Avance
+            {
+                Montant = avance.Montant,
+                DateAvance = avance.DateAvance,
+                EmployeCin = avance.EmployeCin
+            };
 
-            _context.Avances.Add(avance);
+            _context.Avances.Add(nouvelleAvance);
             await _context.SaveChangesAsync();
-            return avance;
+            return nouvelleAvance;
         }
 
         public async Task<Avance> GetAvanceByIdAsync(long id)

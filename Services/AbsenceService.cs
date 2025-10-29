@@ -17,11 +17,78 @@ namespace GestionEmployes.Services
             _context = context;
         }
 
+        // 🔹 Ajouter une absence
+        public bool AjouterAbsence(Absence absence)
+        {
+            try
+            {
+                var nouvelleAbsence = new Absence
+                {
+                    Penalite = absence.Penalite,
+                    DateAbsence = absence.DateAbsence,
+                    EmployeCin = absence.EmployeCin
+                };
+
+                _context.Absences.Add(nouvelleAbsence);
+                _context.SaveChanges();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de l'ajout de l'absence : {ex.Message}");
+                return false;
+            }
+        }
+
+        // 🔹 Récupérer toutes les absences
+        public List<Absence> GetAllAbsences()
+        {
+            try
+            {
+                return _context.Absences
+                    .Include(a => a.Employe)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors du chargement des absences : {ex.Message}");
+                return new List<Absence>();
+            }
+        }
+
+        // 🔹 Récupérer les absences d’un employé
+        public List<Absence> GetAbsencesByEmploye(string employeCin)
+        {
+            return _context.Absences
+                .Include(a => a.Employe)
+                .Where(a => a.EmployeCin == employeCin)
+                .ToList();
+        }
+
+        // 🔹 Supprimer une absence
+        public bool SupprimerAbsence(int id)
+        {
+            try
+            {
+                var absence = _context.Absences.Find(id);
+                if (absence == null) return false;
+
+                _context.Absences.Remove(absence);
+                _context.SaveChanges();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la suppression de l'absence : {ex.Message}");
+                return false;
+            }
+        }
+
         public async Task<Absence> CreateAbsenceAsync(Absence absence)
         {
-            if (absence.Employe == null)
+            if (string.IsNullOrEmpty(absence.EmployeCin))
             {
-                throw new ArgumentException("L'employé est obligatoire.");
+                throw new ArgumentException("Le CIN de l'employé est obligatoire.");
             }
 
             if (absence.Penalite < 0)
@@ -29,19 +96,35 @@ namespace GestionEmployes.Services
                 throw new ArgumentException("La pénalité ne peut pas être négative.");
             }
 
-            // S'assurer d'utiliser un Employe existant (éviter insertion involontaire)
-            if (absence.Employe != null)
+            // ✅ Détacher toute instance d'Absence déjà suivie avec le même ID
+            var existingAbsence = _context.ChangeTracker.Entries<Absence>()
+                .FirstOrDefault(e => e.Entity.Id == absence.Id);
+
+            if (existingAbsence != null)
             {
-                absence.EmployeCin = absence.Employe.Cin;
-                _context.Employes.Attach(absence.Employe);
+                existingAbsence.State = EntityState.Detached;
             }
 
-            // Détacher la navigation pour éviter une réinsertion
-            absence.Employe = null;
+            // ✅ Créer une nouvelle instance
+            var nouvelleAbsence = new Absence
+            {
+                DateAbsence = absence.DateAbsence,
+                Penalite = absence.Penalite,
+                EmployeCin = absence.EmployeCin
+            };
 
-            _context.Absences.Add(absence);
+            // ✅ Vérifier que l'employé existe
+            var employeExiste = await _context.Employes
+                .AnyAsync(e => e.Cin == nouvelleAbsence.EmployeCin);
+
+            if (!employeExiste)
+            {
+                throw new ArgumentException($"L'employé avec CIN {nouvelleAbsence.EmployeCin} n'existe pas.");
+            }
+
+            _context.Absences.Add(nouvelleAbsence);
             await _context.SaveChangesAsync();
-            return absence;
+            return nouvelleAbsence;
         }
 
         public async Task<Absence> GetAbsenceByIdAsync(long id)

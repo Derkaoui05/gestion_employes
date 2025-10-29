@@ -15,25 +15,27 @@ namespace GestionEmployes.Utils
                 Console.WriteLine($"Username saisi: '{username}'");
                 Console.WriteLine($"Password saisi: '{password}'");
 
-                // ✅ VALIDATION AVEC LE SYSTÈME D'ACTIVATION WINDOWS
-                // Vérifier d'abord si l'application est activée
-                if (!ActivationManager.IsActivated())
+                // ✅ VALIDATION AVEC IDENTIFIANTS GÉNÉRIQUES
+                const string GENERIC_USERNAME = "admin";
+                const string GENERIC_PASSWORD = "12345";
+
+                bool isValid = username.Equals(GENERIC_USERNAME, StringComparison.OrdinalIgnoreCase) &&
+                              password == GENERIC_PASSWORD;
+
+                if (!isValid)
                 {
-                    MessageBox.Show($"❌ Application non activée.\n\n" +
-                                  $"📋 Procédez à l'activation :\n" +
-                                  $"1. Obtenez votre Machine ID\n" +
-                                  $"2. Envoyez-le au support\n" +
-                                  $"3. Recevez votre clé d'activation\n\n" +
+                    MessageBox.Show($"❌ Identifiants incorrects.\n\n" +
+                                  $"💡 Identifiants par défaut :\n" +
+                                  $"Nom d'utilisateur: {GENERIC_USERNAME}\n" +
+                                  $"Mot de passe: {GENERIC_PASSWORD}\n\n" +
                                   $"📞 Support: {SUPPORT_PHONE}",
-                                  "Activation Requise",
+                                  "Identifiants Incorrects",
                                   MessageBoxButtons.OK,
                                   MessageBoxIcon.Warning);
                     return false;
                 }
 
-                // ✅ SI ACTIVÉE, ACCEPTER TOUS LES IDENTIFIANTS
-                // (ou vous pouvez mettre une logique spécifique ici)
-                Console.WriteLine("✅ Application activée - Connexion autorisée");
+                Console.WriteLine("✅ Identifiants valides - Connexion autorisée");
                 return true;
 
             }
@@ -50,14 +52,12 @@ namespace GestionEmployes.Utils
 
         public static string GetCustomerName()
         {
-            // Retourner un nom générique
-            return "Client GestionEmployes";
+            return "Administrateur";
         }
 
         public static string GetLicenseUsername()
         {
-            // ✅ Retourner vide - l'utilisateur saisira ses identifiants
-            return "";
+            return "admin";
         }
 
         public static string GetSupportPhone()
@@ -67,19 +67,17 @@ namespace GestionEmployes.Utils
 
         public static bool CheckLicenseExists()
         {
-            // ✅ Retourner true car on utilise le système d'activation Windows
+            // ✅ Retourner true car on utilise des identifiants fixes
             return true;
         }
 
         public static string GetLicenseInfo()
         {
-            return $"🔑 SYSTÈME D'ACTIVATION\n\n" +
-                   $"📋 PROCÉDURE :\n" +
-                   $"1. Obtenez votre Machine ID\n" +
-                   $"2. Envoyez-le au support: {SUPPORT_PHONE}\n" +
-                   $"3. Recevez votre clé d'activation\n" +
-                   $"4. Activez l'application\n" +
-                   $"5. Utilisez n'importe quels identifiants pour vous connecter\n\n" +
+            return $"🔑 IDENTIFIANTS PAR DÉFAUT\n\n" +
+                   $"📋 INFORMATIONS DE CONNEXION :\n" +
+                   $"Nom d'utilisateur: admin\n" +
+                   $"Mot de passe: 12345\n\n" +
+                   $"💡 Vous pouvez modifier ces identifiants dans le code\n" +
                    $"📞 Support: {SUPPORT_PHONE}";
         }
     }

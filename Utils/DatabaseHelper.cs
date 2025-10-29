@@ -11,18 +11,17 @@ namespace GestionEmployes.Data
             return new ApplicationDbContext();
         }
 
-        public static void EnsureDatabaseCreated(){
+        public static void EnsureDatabaseCreated()
+        {
             try
             {
                 Console.WriteLine("   ⏳ Initialisation de la base de données...");
 
-                // Chemin physique du fichier SQLite (résout les problèmes AnyCPU/working dir)
-                var dbPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GestionEmployes.db");
+                var dbPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GestionEmploye.db");
 
                 bool needsRecreate = false;
                 bool exists;
 
-                // Ouvrir un contexte uniquement pour l'inspection
                 using (var context = CreateNewContext())
                 {
                     exists = context.Database.Exists();
@@ -30,15 +29,15 @@ namespace GestionEmployes.Data
                     if (!exists)
                     {
                         Console.WriteLine("   ⏳ Création de la base de données...");
-                        // Aucune base, on créera après avoir fermé le contexte
-                        needsRecreate = true; // utiliser le même flux de création hors connexion
+                        needsRecreate = true;
                     }
                     else
                     {
                         Console.WriteLine("   ✅ Base de données existe déjà");
 
-                        // Vérifier les tables essentielles
-                        bool hasEmploye = false, hasAvance = false, hasAbsence = false;
+                        bool hasEmploye = false, hasAvance = false, hasAbsence = false,
+                             hasSupplier = false, hasFacture = false, hasTransaction = false;
+
                         try
                         {
                             hasEmploye = context.Database.SqlQuery<int>(
@@ -47,31 +46,43 @@ namespace GestionEmployes.Data
                                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Avance'").FirstOrDefault() == 1;
                             hasAbsence = context.Database.SqlQuery<int>(
                                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Absence'").FirstOrDefault() == 1;
+                            hasSupplier = context.Database.SqlQuery<int>(
+                                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Supplier'").FirstOrDefault() == 1;
+                            hasFacture = context.Database.SqlQuery<int>(
+                                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Facture'").FirstOrDefault() == 1;
+                            hasTransaction = context.Database.SqlQuery<int>(
+                                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Transaction'").FirstOrDefault() == 1;
+
+                            Console.WriteLine($"   📊 Tables détectées:");
+                            Console.WriteLine($"      - Employe: {(hasEmploye ? "✅" : "❌")}");
+                            Console.WriteLine($"      - Avance: {(hasAvance ? "✅" : "❌")}");
+                            Console.WriteLine($"      - Absence: {(hasAbsence ? "✅" : "❌")}");
+                            Console.WriteLine($"      - Supplier: {(hasSupplier ? "✅" : "❌")}");
+                            Console.WriteLine($"      - Facture: {(hasFacture ? "✅" : "❌")}");
+                            Console.WriteLine($"      - Transaction: {(hasTransaction ? "✅" : "❌")}");
                         }
                         catch (Exception ex)
                         {
                             Console.WriteLine($"   ⚠️ Erreur vérification tables: {ex.Message}");
                         }
 
-                        if (!(hasEmploye && hasAvance && hasAbsence))
+                        if (!(hasEmploye && hasAvance && hasAbsence && hasSupplier && hasFacture && hasTransaction))
                         {
-                            Console.WriteLine("   🔧 Schéma incomplet détecté (tables manquantes). Création des tables manquantes...");
+                            Console.WriteLine("   🔧 Schéma incomplet détecté. Création des tables manquantes...");
                             try
                             {
-                                // Activer les clés étrangères
                                 context.Database.ExecuteSqlCommand("PRAGMA foreign_keys = ON;");
 
-                                // Créer Employe si nécessaire
+                                // Employe
                                 context.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Employe (
                                     Cin TEXT NOT NULL PRIMARY KEY,
                                     Nom TEXT NOT NULL,
                                     Prenom TEXT NOT NULL,
                                     Utilisateur TEXT NOT NULL,
-                                    MotDePasse INTEGER NOT NULL,
                                     Salaire NUMERIC NULL
                                 );");
 
-                                // Créer Avance si nécessaire
+                                // Avance
                                 context.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Avance (
                                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                                     Montant NUMERIC NOT NULL,
@@ -80,7 +91,7 @@ namespace GestionEmployes.Data
                                     FOREIGN KEY(EmployeCin) REFERENCES Employe(Cin) ON DELETE NO ACTION ON UPDATE NO ACTION
                                 );");
 
-                                // Créer Absence si nécessaire
+                                // Absence
                                 context.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Absence (
                                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                                     Penalite NUMERIC NOT NULL,
@@ -89,81 +100,166 @@ namespace GestionEmployes.Data
                                     FOREIGN KEY(EmployeCin) REFERENCES Employe(Cin) ON DELETE NO ACTION ON UPDATE NO ACTION
                                 );");
 
-                                hasEmploye = true; hasAvance = true; hasAbsence = true;
-                                Console.WriteLine("   ✅ Tables manquantes créées");
+                                // Supplier - CORRIGÉ (Supplier au lieu de Suppliers)
+                                context.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Supplier (
+                                    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                                    Name TEXT NOT NULL,
+                                    Contact TEXT,
+                                    Phone TEXT,
+                                    Email TEXT,
+                                    Address TEXT,
+                                    CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                    IsActive BOOLEAN DEFAULT 1
+                                );");
+
+                                // Facture
+                                context.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Facture (
+                                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                    Number TEXT NOT NULL UNIQUE,
+                                    SupplierId INTEGER NOT NULL,
+                                    Amount DECIMAL(15,2) NOT NULL,
+                                    Advance DECIMAL(15,2) DEFAULT 0,
+                                    InvoiceDate DATETIME NOT NULL,
+                                    DueDate DATETIME NOT NULL,
+                                    Notes TEXT,
+                                    CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                    FOREIGN KEY (SupplierId) REFERENCES Supplier(ID) ON DELETE NO ACTION ON UPDATE NO ACTION
+                                );");
+
+                                // Transaction - Renommé en PaymentTransaction
+                                context.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS PaymentTransaction (
+                                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                    FactureId INTEGER NOT NULL,
+                                    EmployeeCin TEXT,
+                                    Type TEXT NOT NULL,
+                                    Amount DECIMAL(15,2) NOT NULL,
+                                    TransactionDate DATETIME NOT NULL,
+                                    Description TEXT,
+                                    PaymentMethod TEXT,
+                                    Reference TEXT,
+                                    CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                    FOREIGN KEY (FactureId) REFERENCES Facture(Id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+                                    FOREIGN KEY (EmployeeCin) REFERENCES Employe(Cin) ON DELETE NO ACTION ON UPDATE NO ACTION
+                                );");
+
+                                Console.WriteLine("   ✅ Tables manquantes créées avec succès");
                             }
                             catch (Exception exCreate)
                             {
-                                Console.WriteLine($"   ⚠️ Création directe des tables a échoué: {exCreate.Message}. On forcera une recréation complète.");
+                                Console.WriteLine($"   ⚠️ Erreur création tables: {exCreate.Message}");
                                 needsRecreate = true;
                             }
                         }
                         else
                         {
-                            Console.WriteLine("   ✅ Schéma OK (Employe, Avance, Absence)");
+                            Console.WriteLine("   ✅ Schéma complet détecté");
                         }
                     }
-                } // IMPORTANT: sortir du using pour libérer la connexion avant delete/create
+                }
 
                 if (needsRecreate)
                 {
                     try
                     {
-                        // Fermer toute connexion résiduelle puis supprimer via EF
-                        using (var ctxToDelete = CreateNewContext())
+                        Console.WriteLine("   🔄 Recréation complète de la base de données...");
+
+                        // Pour SQLite, on ne peut pas utiliser Database.Delete()
+                        // On supprime simplement le fichier
+                        if (System.IO.File.Exists(dbPath))
                         {
-                            try { ctxToDelete.Database.Connection.Close(); } catch { }
-                            if (ctxToDelete.Database.Exists())
+                            try
                             {
-                                ctxToDelete.Database.Delete();
-                                Console.WriteLine("   🗑️ Ancienne base supprimée (EF)");
+                                System.IO.File.Delete(dbPath);
+                                Console.WriteLine("   🗑️ Fichier SQLite supprimé");
+                            }
+                            catch (Exception exFile)
+                            {
+                                Console.WriteLine($"   ⚠️ Impossible de supprimer le fichier: {exFile.Message}");
                             }
                         }
 
-                        // File system fallback si le fichier existe toujours
-                        if (System.IO.File.Exists(dbPath))
+                        // Créer une nouvelle base de données
+                        using (var ctxCreate = CreateNewContext())
                         {
-                            System.IO.File.Delete(dbPath);
-                            Console.WriteLine("   🗑️ Fichier SQLite supprimé (FS)");
+                            ctxCreate.Database.CreateIfNotExists();
+                            ctxCreate.Database.ExecuteSqlCommand("PRAGMA foreign_keys = ON;");
+
+                            // Créer toutes les tables
+                            ctxCreate.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Employe (
+                                Cin TEXT NOT NULL PRIMARY KEY,
+                                Nom TEXT NOT NULL,
+                                Prenom TEXT NOT NULL,
+                                Utilisateur TEXT NOT NULL,
+                                Salaire NUMERIC NULL
+                            );");
+
+                            ctxCreate.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Avance (
+                                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                Montant NUMERIC NOT NULL,
+                                DateAvance TEXT NOT NULL,
+                                EmployeCin TEXT NOT NULL,
+                                FOREIGN KEY(EmployeCin) REFERENCES Employe(Cin) ON DELETE NO ACTION ON UPDATE NO ACTION
+                            );");
+
+                            ctxCreate.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Absence (
+                                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                Penalite NUMERIC NOT NULL,
+                                DateAbsence TEXT NOT NULL,
+                                EmployeCin TEXT NOT NULL,
+                                FOREIGN KEY(EmployeCin) REFERENCES Employe(Cin) ON DELETE NO ACTION ON UPDATE NO ACTION
+                            );");
+
+                            ctxCreate.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Supplier (
+                                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                                Name TEXT NOT NULL,
+                                Contact TEXT,
+                                Phone TEXT,
+                                Email TEXT,
+                                Address TEXT,
+                                CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                IsActive BOOLEAN DEFAULT 1
+                            );");
+
+                            ctxCreate.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Facture (
+                                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                Number TEXT NOT NULL UNIQUE,
+                                SupplierId INTEGER NOT NULL,
+                                Amount DECIMAL(15,2) NOT NULL,
+                                Advance DECIMAL(15,2) DEFAULT 0,
+                                InvoiceDate DATETIME NOT NULL,
+                                DueDate DATETIME NOT NULL,
+                                Notes TEXT,
+                                CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                FOREIGN KEY (SupplierId) REFERENCES Supplier(ID) ON DELETE NO ACTION ON UPDATE NO ACTION
+                            );");
+
+                            // Transaction - Renommé en PaymentTransaction pour éviter le mot réservé
+                            ctxCreate.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS PaymentTransaction (
+                                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                    FactureId INTEGER NOT NULL,
+                                    EmployeeCin TEXT,
+                                    Type TEXT NOT NULL,
+                                    Amount DECIMAL(15,2) NOT NULL,
+                                    TransactionDate DATETIME NOT NULL,
+                                    Description TEXT,
+                                    PaymentMethod TEXT,
+                                    Reference TEXT,
+                                    CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                    FOREIGN KEY (FactureId) REFERENCES Facture(Id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+                                    FOREIGN KEY (EmployeeCin) REFERENCES Employe(Cin) ON DELETE NO ACTION ON UPDATE NO ACTION
+                                );");
+
+                            Console.WriteLine("   ✅ Base de données recréée avec succès");
                         }
                     }
-                    catch (Exception exDel)
+                    catch (Exception exRecreate)
                     {
-                        Console.WriteLine($"   ⚠️ Échec suppression: {exDel.Message}");
-                    }
-
-                    // Recréer avec un nouveau contexte propre
-                    using (var ctxCreate = CreateNewContext())
-                    {
-                        // Crée le fichier si absent
-                        ctxCreate.Database.CreateIfNotExists();
-                        // S'assurer que les tables existent
-                        ctxCreate.Database.ExecuteSqlCommand("PRAGMA foreign_keys = ON;");
-                        ctxCreate.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Employe (
-                                    Cin TEXT NOT NULL PRIMARY KEY,
-                                    Nom TEXT NOT NULL,
-                                    Prenom TEXT NOT NULL,
-                                    Utilisateur TEXT NOT NULL,
-                                    MotDePasse INTEGER NOT NULL,
-                                    Salaire NUMERIC NULL
-                                );");
-                        ctxCreate.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Avance (
-                                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                    Montant NUMERIC NOT NULL,
-                                    DateAvance TEXT NOT NULL,
-                                    EmployeCin TEXT NOT NULL,
-                                    FOREIGN KEY(EmployeCin) REFERENCES Employe(Cin) ON DELETE NO ACTION ON UPDATE NO ACTION
-                                );");
-                        ctxCreate.Database.ExecuteSqlCommand(@"CREATE TABLE IF NOT EXISTS Absence (
-                                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                    Penalite NUMERIC NOT NULL,
-                                    DateAbsence TEXT NOT NULL,
-                                    EmployeCin TEXT NOT NULL,
-                                    FOREIGN KEY(EmployeCin) REFERENCES Employe(Cin) ON DELETE NO ACTION ON UPDATE NO ACTION
-                                );");
-                        Console.WriteLine("   ✅ Base (re)créée avec les tables du modèle");
+                        Console.WriteLine($"❌ Erreur recréation: {exRecreate.Message}");
+                        throw;
                     }
                 }
+
+                Console.WriteLine("   ✅ Initialisation complète réussie!");
             }
             catch (Exception ex)
             {

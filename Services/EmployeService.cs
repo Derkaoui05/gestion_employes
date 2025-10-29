@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace GestionEmployes.Services
 {
-    internal class EmployeService:IEmployeService
+    public class EmployeService:IEmployeService
     {
         private readonly ApplicationDbContext _context;
 
@@ -17,20 +17,82 @@ namespace GestionEmployes.Services
         {
             _context = context;
         }
+        // 🔹 Ajouter un employé
+        public bool AjouterEmploye(Employe employe)
+        {
+            try
+            {
+                _context.Employes.Add(employe);
+                _context.SaveChanges();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de l'ajout de l'employé : {ex.Message}");
+                return false;
+            }
+        }
+        public List<Employe> GetAllEmployes()
+        {
+            try
+            {
+                return _context.Employes.Include(e => e.Avances).Include(e => e.Absences).ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la récupération des employés : {ex.Message}");
+                return new List<Employe>();
+            }
+        }
+        // 🔹 Rechercher un employé par CIN
+        public Employe GetEmployeByCin(string cin)
+        {
+            return _context.Employes
+                .Include(e => e.Avances)
+                .Include(e => e.Absences)
+                .FirstOrDefault(e => e.Cin == cin);
+        }
+
+        // 🔹 Mettre à jour un employé
+        public bool ModifierEmploye(Employe employe)
+        {
+            try
+            {
+                var existing = _context.Employes.Find(employe.Cin);
+                if (existing == null) return false;
+
+                _context.Entry(existing).CurrentValues.SetValues(employe);
+                _context.SaveChanges();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la modification : {ex.Message}");
+                return false;
+            }
+        }
+        // 🔹 Supprimer un employé
+        public bool SupprimerEmploye(string cin)
+        {
+            try
+            {
+                var employe = _context.Employes.Find(cin);
+                if (employe == null) return false;
+
+                _context.Employes.Remove(employe);
+                _context.SaveChanges();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la suppression : {ex.Message}");
+                return false;
+            }
+        }
+
 
         public async Task<Employe> CreateEmployeAsync(Employe employe)
         {
-            // Validate CIN uniqueness
-            if (await CinExistsAsync(employe.Cin))
-            {
-                throw new ArgumentException($"Un employé avec le CIN {employe.Cin} existe déjà.");
-            }
-
-            // Validate password uniqueness
-            if (await PasswordExistsAsync(employe.MotDePasse))
-            {
-                throw new ArgumentException($"Le mot de passe {employe.MotDePasse} est déjà utilisé.");
-            }
 
             // Validate required fields
             if (string.IsNullOrWhiteSpace(employe.Nom))
@@ -73,18 +135,17 @@ namespace GestionEmployes.Services
             }
 
             // Check password uniqueness (excluding current employee)
-            var existingByPassword = await _context.Employes
-                .FirstOrDefaultAsync(e => e.MotDePasse == employe.MotDePasse && e.Cin != employe.Cin);
+            //var existingByPassword = await _context.Employes
+            //    .FirstOrDefaultAsync(e => e.MotDePasse == employe.MotDePasse && e.Cin != employe.Cin);
 
-            if (existingByPassword != null)
-            {
-                throw new ArgumentException($"Le mot de passe {employe.MotDePasse} est déjà utilisé.");
-            }
+            //if (existingByPassword != null)
+            //{
+            //    throw new ArgumentException($"Le mot de passe {employe.MotDePasse} est déjà utilisé.");
+            //}
 
             existingEmploye.Nom = employe.Nom;
             existingEmploye.Prenom = employe.Prenom;
             existingEmploye.Utilisateur = employe.Utilisateur;
-            existingEmploye.MotDePasse = employe.MotDePasse;
             existingEmploye.Salaire = employe.Salaire;
 
             await _context.SaveChangesAsync();
@@ -102,20 +163,16 @@ namespace GestionEmployes.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<Employe> AuthenticateAsync(string utilisateur, int motDePasse)
-        {
-            return await _context.Employes
-                .FirstOrDefaultAsync(e => e.Utilisateur == utilisateur && e.MotDePasse == motDePasse);
-        }
+        //public async Task<Employe> AuthenticateAsync(string utilisateur, int motDePasse)
+        //{
+        //    return await _context.Employes
+        //        .FirstOrDefaultAsync(e => e.Utilisateur == utilisateur && e.MotDePasse == motDePasse);
+        //}
 
-        public async Task<bool> CinExistsAsync(string cin)
-        {
-            return await _context.Employes.AnyAsync(e => e.Cin == cin);
-        }
+        //public async Task<bool> CinExistsAsync(string cin)
+        //{
+        //    return await _context.Employes.AnyAsync(e => e.Cin == cin);
+        //}
 
-        public async Task<bool> PasswordExistsAsync(int motDePasse)
-        {
-            return await _context.Employes.AnyAsync(e => e.MotDePasse == motDePasse);
-        }
     }
 }

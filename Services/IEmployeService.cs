@@ -14,8 +14,8 @@ namespace GestionEmployes.Services
         Task<List<Employe>> GetAllEmployesAsync();
         Task<Employe> UpdateEmployeAsync(Employe employe);
         Task DeleteEmployeAsync(string cin);
-        Task<Employe> AuthenticateAsync(string utilisateur, int motDePasse);
-        Task<bool> CinExistsAsync(string cin);
-        Task<bool> PasswordExistsAsync(int motDePasse);
+        //Task<Employe> AuthenticateAsync(string utilisateur, int motDePasse);
+        //Task<bool> CinExistsAsync(string cin);
+        //Task<bool> PasswordExistsAsync(int motDePasse);
     }
 }

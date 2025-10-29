@@ -29,10 +29,10 @@ namespace GestionEmployes.Forms
         private void InitializeComponent()
         {
             this.dgvReports = new System.Windows.Forms.DataGridView();
-            this.dtpStartDate = new System.Windows.Forms.DateTimePicker();
-            this.dtpEndDate = new System.Windows.Forms.DateTimePicker();
+            //this.dtpStartDate = new System.Windows.Forms.DateTimePicker();
+            //this.dtpEndDate = new System.Windows.Forms.DateTimePicker();
             this.btnCurrentWeek = new System.Windows.Forms.Button();
-            this.btnCustomPeriod = new System.Windows.Forms.Button();
+            //this.btnCustomPeriod = new System.Windows.Forms.Button();
             this.btnExportExcel = new System.Windows.Forms.Button();
             this.btnRefresh = new System.Windows.Forms.Button();
             this.lblStatus = new System.Windows.Forms.Label();
@@ -75,37 +75,37 @@ namespace GestionEmployes.Forms
             filterCard.BackColor = GestionEmployes.Utils.Theme.CardBackground;
             filterCard.Padding = new System.Windows.Forms.Padding(20);
 
-            // label1 - Date début
-            this.label1.Text = "Date début";
-            this.label1.Location = new System.Drawing.Point(20, 20);
-            this.label1.Size = new System.Drawing.Size(100, 20);
-            this.label1.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
-            this.label1.ForeColor = GestionEmployes.Utils.Theme.TextColor;
-            this.label1.Name = "label1";
-            filterCard.Controls.Add(this.label1);
+            //// label1 - Date début
+            //this.label1.Text = "Date début";
+            //this.label1.Location = new System.Drawing.Point(20, 20);
+            //this.label1.Size = new System.Drawing.Size(100, 20);
+            //this.label1.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
+            //this.label1.ForeColor = GestionEmployes.Utils.Theme.TextColor;
+            //this.label1.Name = "label1";
+            //filterCard.Controls.Add(this.label1);
 
-            // dtpStartDate - FIXED HEIGHT TO 35
-            this.dtpStartDate.Location = new System.Drawing.Point(20, 45);
-            this.dtpStartDate.Size = new System.Drawing.Size(200, 35);
-            this.dtpStartDate.Font = new System.Drawing.Font("Segoe UI", 11F);
-            this.dtpStartDate.Name = "dtpStartDate";
-            filterCard.Controls.Add(this.dtpStartDate);
+            //// dtpStartDate - FIXED HEIGHT TO 35
+            //this.dtpStartDate.Location = new System.Drawing.Point(20, 45);
+            //this.dtpStartDate.Size = new System.Drawing.Size(200, 35);
+            //this.dtpStartDate.Font = new System.Drawing.Font("Segoe UI", 11F);
+            //this.dtpStartDate.Name = "dtpStartDate";
+            //filterCard.Controls.Add(this.dtpStartDate);
 
-            // label2 - Date fin
-            this.label2.Text = "Date fin";
-            this.label2.Location = new System.Drawing.Point(240, 20);
-            this.label2.Size = new System.Drawing.Size(100, 20);
-            this.label2.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
-            this.label2.ForeColor = GestionEmployes.Utils.Theme.TextColor;
-            this.label2.Name = "label2";
-            filterCard.Controls.Add(this.label2);
+            //// label2 - Date fin
+            //this.label2.Text = "Date fin";
+            //this.label2.Location = new System.Drawing.Point(240, 20);
+            //this.label2.Size = new System.Drawing.Size(100, 20);
+            //this.label2.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
+            //this.label2.ForeColor = GestionEmployes.Utils.Theme.TextColor;
+            //this.label2.Name = "label2";
+            //filterCard.Controls.Add(this.label2);
 
-            // dtpEndDate - FIXED HEIGHT TO 35
-            this.dtpEndDate.Location = new System.Drawing.Point(240, 45);
-            this.dtpEndDate.Size = new System.Drawing.Size(200, 35);
-            this.dtpEndDate.Font = new System.Drawing.Font("Segoe UI", 11F);
-            this.dtpEndDate.Name = "dtpEndDate";
-            filterCard.Controls.Add(this.dtpEndDate);
+            //// dtpEndDate - FIXED HEIGHT TO 35
+            //this.dtpEndDate.Location = new System.Drawing.Point(240, 45);
+            //this.dtpEndDate.Size = new System.Drawing.Size(200, 35);
+            //this.dtpEndDate.Font = new System.Drawing.Font("Segoe UI", 11F);
+            //this.dtpEndDate.Name = "dtpEndDate";
+            //filterCard.Controls.Add(this.dtpEndDate);
 
             // Buttons
             this.btnCurrentWeek.Text = "📅 Semaine actuelle";
@@ -114,11 +114,11 @@ namespace GestionEmployes.Forms
             this.btnCurrentWeek.Size = new System.Drawing.Size(200, 35);
             filterCard.Controls.Add(this.btnCurrentWeek);
 
-            this.btnCustomPeriod.Text = "🔍 Période perso";
-            this.btnCustomPeriod.Name = "btnCustomPeriod";
-            this.btnCustomPeriod.Location = new System.Drawing.Point(680, 45);
-            this.btnCustomPeriod.Size = new System.Drawing.Size(180, 35);
-            filterCard.Controls.Add(this.btnCustomPeriod);
+            //this.btnCustomPeriod.Text = "🔍 Période perso";
+            //this.btnCustomPeriod.Name = "btnCustomPeriod";
+            //this.btnCustomPeriod.Location = new System.Drawing.Point(680, 45);
+            //this.btnCustomPeriod.Size = new System.Drawing.Size(180, 35);
+            //filterCard.Controls.Add(this.btnCustomPeriod);
 
             this.btnExportExcel.Text = "📥 Exporter Excel";
             this.btnExportExcel.Name = "btnExportExcel";
@@ -269,10 +269,10 @@ namespace GestionEmployes.Forms
         #endregion
 
         private System.Windows.Forms.DataGridView dgvReports;
-        private System.Windows.Forms.DateTimePicker dtpStartDate;
-        private System.Windows.Forms.DateTimePicker dtpEndDate;
+        //private System.Windows.Forms.DateTimePicker dtpStartDate;
+        //private System.Windows.Forms.DateTimePicker dtpEndDate;
         private System.Windows.Forms.Button btnCurrentWeek;
-        private System.Windows.Forms.Button btnCustomPeriod;
+        //private System.Windows.Forms.Button btnCustomPeriod;
         private System.Windows.Forms.Button btnExportExcel;
         private System.Windows.Forms.Button btnRefresh;
         private System.Windows.Forms.Label lblStatus;

@@ -27,8 +27,6 @@ namespace GestionEmployes.Models
         [StringLength(50)]
         public string Utilisateur { get; set; }
 
-        [Required]
-        public int MotDePasse { get; set; }
 
         [Column(TypeName = "decimal")]
         public decimal? Salaire { get; set; }
@@ -43,13 +41,12 @@ namespace GestionEmployes.Models
             Absences = new List<Absence>();
         }
 
-        public Employe(string cin, string nom, string prenom, string utilisateur, int motDePasse, decimal? salaire)
+        public Employe(string cin, string nom, string prenom, string utilisateur,  decimal? salaire)
         {
             Cin = cin;
             Nom = nom;
             Prenom = prenom;
             Utilisateur = utilisateur;
-            MotDePasse = motDePasse;
             Salaire = salaire;
             Avances = new List<Avance>();
             Absences = new List<Absence>();

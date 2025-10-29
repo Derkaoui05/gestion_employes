@@ -22,117 +22,259 @@ namespace GestionEmployes.Forms
         {
             _reportService = reportService;
             InitializeComponent();
-            Theme.Apply(this);
+            ApplyCustomTheme();
             SetupForm();
             LoadCurrentWeekReport();
         }
 
+        private void ApplyCustomTheme()
+        {
+            this.BackColor = Color.FromArgb(240, 245, 249);
+            this.ForeColor = Color.FromArgb(33, 37, 41);
+        }
+
         public void SetupForm()
         {
-            // Setup DataGridView
+            this.Dock = DockStyle.Fill;
+            this.AutoSize = false;
+
+            // Configuration du DataGridView
             dgvReports.AutoGenerateColumns = false;
             dgvReports.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvReports.MultiSelect = false;
             dgvReports.ReadOnly = true;
+            dgvReports.Dock = DockStyle.Fill;
+            dgvReports.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvReports.BackgroundColor = Color.White;
+            dgvReports.BorderStyle = BorderStyle.Fixed3D;
+            dgvReports.GridColor = Color.FromArgb(229, 229, 229);
 
-            // Add columns
+            // Style des en-têtes de colonnes
+            dgvReports.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+            {
+                BackColor = Color.FromArgb(52, 152, 219),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                Alignment = DataGridViewContentAlignment.MiddleCenter,
+                Padding = new Padding(5)
+            };
+
+            dgvReports.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
+            dgvReports.ColumnHeadersHeight = 50;
+
+            // Style des cellules
+            dgvReports.DefaultCellStyle = new DataGridViewCellStyle
+            {
+                Font = new Font("Segoe UI", 10F),
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(33, 37, 41),
+                SelectionBackColor = Color.FromArgb(220, 237, 255),
+                SelectionForeColor = Color.Black,
+                Padding = new Padding(3)
+            };
+
+            // Style des lignes alternées
+            dgvReports.AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
+            {
+                BackColor = Color.FromArgb(248, 250, 252),
+                Font = new Font("Segoe UI", 10F)
+            };
+
+            dgvReports.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dgvReports.RowHeadersVisible = false;
+
+            // Colonnes
             dgvReports.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "Cin",
                 HeaderText = "CIN",
                 DataPropertyName = "Cin",
-                Width = 100
+                Width = 90,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
             });
 
             dgvReports.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "Nom",
-                HeaderText = "Nom",
+                HeaderText = "NOM",
                 DataPropertyName = "Nom",
-                Width = 120
+                Width = 130,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleLeft }
             });
 
             dgvReports.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "Prenom",
-                HeaderText = "Prénom",
+                HeaderText = "PRENOM",
                 DataPropertyName = "Prenom",
-                Width = 120
+                Width = 130,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleLeft }
             });
 
             dgvReports.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "Salaire",
-                HeaderText = "Salaire",
+                HeaderText = "SALAIRE",
                 DataPropertyName = "Salaire",
-                Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" }
+                Width = 120,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Format = "N2",
+                    Alignment = DataGridViewContentAlignment.MiddleRight,
+                    ForeColor = Color.FromArgb(46, 125, 50)
+                }
             });
 
             dgvReports.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "TotalAvances",
-                HeaderText = "Avances",
+                HeaderText = "AVANCES",
                 DataPropertyName = "TotalAvances",
-                Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" }
+                Width = 120,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Format = "N2",
+                    Alignment = DataGridViewContentAlignment.MiddleRight,
+                    ForeColor = Color.FromArgb(198, 40, 40)
+                }
             });
 
             dgvReports.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "TotalPenalites",
-                HeaderText = "Pénalités",
+                HeaderText = "PENALITES",
                 DataPropertyName = "TotalPenalites",
-                Width = 100,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" }
+                Width = 120,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Format = "N2",
+                    Alignment = DataGridViewContentAlignment.MiddleRight,
+                    ForeColor = Color.FromArgb(198, 40, 40)
+                }
             });
 
             dgvReports.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "NombreAbsences",
-                HeaderText = "Absences",
+                HeaderText = "ABSENCES",
                 DataPropertyName = "NombreAbsences",
-                Width = 80
+                Width = 90,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Alignment = DataGridViewContentAlignment.MiddleCenter,
+                    ForeColor = Color.FromArgb(198, 40, 40)
+                }
             });
 
             dgvReports.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "SalaireNet",
-                HeaderText = "Salaire Net",
+                HeaderText = "SALAIRE NET",
                 DataPropertyName = "SalaireNet",
-                Width = 120,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" }
+                Width = 140,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Format = "N2",
+                    Alignment = DataGridViewContentAlignment.MiddleRight,
+                    Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(30, 81, 40)
+                }
             });
+
             dgvReports.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "WeekStart",
-                HeaderText = "Début Semaine",
+                HeaderText = "DEBUT SEMAINE",
                 DataPropertyName = "WeekStart",
-                Width = 120,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "dd/MM/yyyy" }
+                Width = 130,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Format = "dd/MM/yyyy",
+                    Alignment = DataGridViewContentAlignment.MiddleCenter
+                }
             });
 
             dgvReports.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "WeekEnd",
-                HeaderText = "Fin Semaine",
+                HeaderText = "FIN SEMAINE",
                 DataPropertyName = "WeekEnd",
-                Width = 120,
-                DefaultCellStyle = new DataGridViewCellStyle { Format = "dd/MM/yyyy" }
+                Width = 130,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Format = "dd/MM/yyyy",
+                    Alignment = DataGridViewContentAlignment.MiddleCenter
+                }
             });
 
-            // Setup DatePickers
-            dtpStartDate.Value = DateTime.Today.AddDays(-7);
-            dtpEndDate.Value = DateTime.Today;
+            dgvReports.RowTemplate.Height = 40;
+            dgvReports.Font = new Font("Segoe UI", 10.5F);
+
+            // Style des boutons sans icônes
+            ApplyButtonStyle(btnCurrentWeek, Color.FromArgb(41, 128, 185), "Semaine Courante");
+            ApplyButtonStyle(btnExportExcel, Color.FromArgb(39, 174, 96), "Exporter Excel");
+            ApplyButtonStyle(btnRefresh, Color.FromArgb(52, 152, 219), "Actualiser");
+
+            // Style des labels de résumé
+            ApplySummaryLabelStyle(lblTotalEmployees, Color.FromArgb(52, 152, 219));
+            ApplySummaryLabelStyle(lblTotalAdvances, Color.FromArgb(231, 76, 60));
+            ApplySummaryLabelStyle(lblTotalPenalties, Color.FromArgb(230, 126, 34));
+            ApplySummaryLabelStyle(lblTotalNetSalary, Color.FromArgb(46, 204, 113));
 
             // Event handlers
             btnCurrentWeek.Click += BtnCurrentWeek_Click;
-            btnCustomPeriod.Click += BtnCustomPeriod_Click;
             btnExportExcel.Click += BtnExportExcel_Click;
             btnRefresh.Click += BtnRefresh_Click;
 
-            // Initial state
+            // Alignement des boutons côte à côte
+            ArrangeButtons();
+
             UpdateButtonStates();
+        }
+
+        private void ArrangeButtons()
+        {
+            // Positionner les boutons côte à côte avec espacement
+            int buttonWidth = 180;
+            int buttonHeight = 50;
+            int spacing = 15;
+            int startX = 20;
+            int yPosition = 10;
+
+            btnCurrentWeek.Location = new Point(startX, yPosition);
+            btnCurrentWeek.Size = new Size(buttonWidth, buttonHeight);
+
+            btnExportExcel.Location = new Point(startX + buttonWidth + spacing, yPosition);
+            btnExportExcel.Size = new Size(buttonWidth, buttonHeight);
+
+            btnRefresh.Location = new Point(startX + (buttonWidth + spacing) * 2, yPosition);
+            btnRefresh.Size = new Size(buttonWidth, buttonHeight);
+        }
+
+        private void ApplyButtonStyle(Button button, Color backgroundColor, string text = null)
+        {
+            if (!string.IsNullOrEmpty(text))
+                button.Text = text;
+
+            button.BackColor = backgroundColor;
+            button.ForeColor = Color.White;
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.FlatAppearance.MouseOverBackColor = ControlPaint.Light(backgroundColor);
+            button.FlatAppearance.MouseDownBackColor = ControlPaint.Dark(backgroundColor);
+            button.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            button.Cursor = Cursors.Hand;
+            button.Size = new Size(180, 50);
+            button.Padding = new Padding(10, 5, 10, 5);
+        }
+
+        private void ApplySummaryLabelStyle(Label label, Color color)
+        {
+            label.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            label.ForeColor = color;
+            label.BackColor = Color.Transparent;
+            label.AutoSize = true;
+            label.Padding = new Padding(5);
         }
 
         private async Task LoadCurrentWeekReport()
@@ -140,46 +282,26 @@ namespace GestionEmployes.Forms
             try
             {
                 lblStatus.Text = "Chargement du rapport de la semaine courante...";
+                lblStatus.ForeColor = Color.FromArgb(52, 152, 219);
+
                 _currentReports = await _reportService.GenerateCurrentWeekReportAsync();
                 dgvReports.DataSource = _currentReports;
+
+                dgvReports.AutoResizeColumns();
                 UpdateSummaryLabels();
+
                 lblStatus.Text = $"Rapport chargé: {_currentReports.Count} employés";
+                lblStatus.ForeColor = Color.FromArgb(39, 174, 96);
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Erreur lors du chargement du rapport: {ex.Message}", "Erreur",
                               MessageBoxButtons.OK, MessageBoxIcon.Error);
                 lblStatus.Text = "Erreur lors du chargement";
+                lblStatus.ForeColor = Color.FromArgb(231, 76, 60);
             }
         }
 
-        private async Task LoadCustomPeriodReport()
-        {
-            try
-            {
-                var startDate = dtpStartDate.Value.Date;
-                var endDate = dtpEndDate.Value.Date;
-
-                if (startDate > endDate)
-                {
-                    MessageBox.Show("La date de début doit être antérieure à la date de fin", "Erreur",
-                                  MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                lblStatus.Text = "Chargement du rapport personnalisé...";
-                _currentReports = await _reportService.GenerateWeeklyReportAsync(startDate, endDate);
-                dgvReports.DataSource = _currentReports;
-                UpdateSummaryLabels();
-                lblStatus.Text = $"Rapport chargé: {_currentReports.Count} employés ({startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy})";
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Erreur lors du chargement du rapport: {ex.Message}", "Erreur",
-                              MessageBoxButtons.OK, MessageBoxIcon.Error);
-                lblStatus.Text = "Erreur lors du chargement";
-            }
-        }
         private void UpdateSummaryLabels()
         {
             if (_currentReports == null || _currentReports.Count == 0)
@@ -206,6 +328,17 @@ namespace GestionEmployes.Forms
         {
             bool hasReports = _currentReports != null && _currentReports.Count > 0;
             btnExportExcel.Enabled = hasReports;
+
+            if (!hasReports)
+            {
+                btnExportExcel.BackColor = Color.FromArgb(149, 165, 166);
+                btnExportExcel.FlatAppearance.MouseOverBackColor = Color.FromArgb(149, 165, 166);
+            }
+            else
+            {
+                btnExportExcel.BackColor = Color.FromArgb(39, 174, 96);
+                btnExportExcel.FlatAppearance.MouseOverBackColor = ControlPaint.Light(Color.FromArgb(39, 174, 96));
+            }
         }
 
         private async void BtnCurrentWeek_Click(object sender, EventArgs e)
@@ -214,11 +347,6 @@ namespace GestionEmployes.Forms
             UpdateButtonStates();
         }
 
-        private async void BtnCustomPeriod_Click(object sender, EventArgs e)
-        {
-            await LoadCustomPeriodReport();
-            UpdateButtonStates();
-        }
         private async void BtnExportExcel_Click(object sender, EventArgs e)
         {
             if (_currentReports == null || _currentReports.Count == 0)
@@ -239,6 +367,7 @@ namespace GestionEmployes.Forms
                     try
                     {
                         lblStatus.Text = "Export en cours...";
+                        lblStatus.ForeColor = Color.FromArgb(52, 152, 219);
                         btnExportExcel.Enabled = false;
 
                         bool success = await _reportService.ExportToExcelAsync(_currentReports, saveDialog.FileName);
@@ -248,12 +377,14 @@ namespace GestionEmployes.Forms
                             MessageBox.Show($"Rapport exporté avec succès vers:\n{saveDialog.FileName}", "Succès",
                                           MessageBoxButtons.OK, MessageBoxIcon.Information);
                             lblStatus.Text = "Export terminé avec succès";
+                            lblStatus.ForeColor = Color.FromArgb(39, 174, 96);
                         }
                         else
                         {
                             MessageBox.Show("Erreur lors de l'export du rapport", "Erreur",
                                           MessageBoxButtons.OK, MessageBoxIcon.Error);
                             lblStatus.Text = "Erreur lors de l'export";
+                            lblStatus.ForeColor = Color.FromArgb(231, 76, 60);
                         }
                     }
                     catch (Exception ex)
@@ -261,10 +392,12 @@ namespace GestionEmployes.Forms
                         MessageBox.Show($"Erreur lors de l'export: {ex.Message}", "Erreur",
                                       MessageBoxButtons.OK, MessageBoxIcon.Error);
                         lblStatus.Text = "Erreur lors de l'export";
+                        lblStatus.ForeColor = Color.FromArgb(231, 76, 60);
                     }
                     finally
                     {
                         btnExportExcel.Enabled = true;
+                        UpdateButtonStates();
                     }
                 }
             }
@@ -278,23 +411,12 @@ namespace GestionEmployes.Forms
                           MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-
-        // Event handlers for date validation
-        private void DtpStartDate_ValueChanged(object sender, EventArgs e)
+        protected override void OnResize(EventArgs e)
         {
-            // Ensure start date is not after end date
-            if (dtpStartDate.Value > dtpEndDate.Value)
+            base.OnResize(e);
+            if (dgvReports != null && dgvReports.Columns.Count > 0)
             {
-                dtpEndDate.Value = dtpStartDate.Value;
-            }
-        }
-
-        private void DtpEndDate_ValueChanged(object sender, EventArgs e)
-        {
-            // Ensure end date is not before start date
-            if (dtpEndDate.Value < dtpStartDate.Value)
-            {
-                dtpStartDate.Value = dtpEndDate.Value;
+                dgvReports.AutoResizeColumns();
             }
         }
     }

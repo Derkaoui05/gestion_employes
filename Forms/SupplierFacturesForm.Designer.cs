@@ -1,12 +1,11 @@
 ﻿namespace GestionEmployes.Forms
 {
-    partial class MainForm
+    partial class SupplierFacturesForm
     {
         /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
-        private System.Windows.Forms.TabControl tabControl;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -30,28 +29,9 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            this.tabControl = new System.Windows.Forms.TabControl();
-            this.SuspendLayout();
-
-            // 
-            // tabControl - DOCK FILL POUR PLEINE TAILLE
-            // 
-            this.tabControl.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tabControl.Location = new System.Drawing.Point(0, 0);
-            this.tabControl.Name = "tabControl";
-            this.tabControl.SelectedIndex = 0;
-            this.tabControl.Size = new System.Drawing.Size(1600, 900); // ✅ COHÉRENT AVEC SetupForm()
-            this.tabControl.TabIndex = 0;
-
-            // 
-            // MainForm
-            // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1600, 900); // ✅ MÊME TAILLE QUE SetupForm()
-            this.Controls.Add(this.tabControl);
-            this.Name = "MainForm";
-            this.Text = "Système de Gestion des Employés";
-            this.ResumeLayout(false);
+            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Text = "SupplierFacturesForm";
         }
 
         #endregion
