@@ -37,6 +37,7 @@ namespace GestionEmployes.Services
                     _context = DatabaseHelper.CreateNewContext();
 
                 return _context.Set<Supplier>()
+                    .AsNoTracking()
                     .Include(s => s.Factures)
                     .OrderBy(s => s.Name)
                     .ToList();
@@ -57,6 +58,7 @@ namespace GestionEmployes.Services
                     _context = DatabaseHelper.CreateNewContext();
 
                 return _context.Set<Supplier>()
+                    .AsNoTracking()
                     .Include(s => s.Factures)
                     .FirstOrDefault(s => s.ID == id);
             }

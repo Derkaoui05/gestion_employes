@@ -41,14 +41,16 @@ namespace GestionEmployes.Forms
         private Button btnClearFacture;
 
         // Nouvelles couleurs personnalisées
-        private Color PrimaryColor = Color.FromArgb(41, 128, 185);    // Bleu principal
-        private Color SecondaryColor = Color.FromArgb(52, 152, 219);  // Bleu secondaire
-        private Color SuccessColor = Color.FromArgb(39, 174, 96);     // Vert succès
-        private Color DangerColor = Color.FromArgb(231, 76, 60);      // Rouge danger
-        private Color WarningColor = Color.FromArgb(230, 126, 34);    // Orange avertissement
-        private Color InfoColor = Color.FromArgb(52, 152, 219);       // Bleu info
-        private Color CardBackground = Color.FromArgb(248, 249, 250); // Fond carte
-        private Color TextColor = Color.FromArgb(33, 37, 41);         // Texte principal
+        private Color PrimaryColor = Color.FromArgb(41, 128, 185);
+        private Color SecondaryColor = Color.FromArgb(52, 152, 219);
+        private Color SuccessColor = Color.FromArgb(39, 174, 96);
+        private Color DangerColor = Color.FromArgb(231, 76, 60);
+        private Color WarningColor = Color.FromArgb(230, 126, 34);
+        private Color InfoColor = Color.FromArgb(52, 152, 219);
+        private Color CardBackground = Color.FromArgb(248, 249, 250);
+        private Color TextColor = Color.FromArgb(33, 37, 41);
+        private Color HeaderColor = Color.FromArgb(52, 73, 94);
+        private Color FilterPanelColor = Color.FromArgb(236, 240, 241);
 
         public SupplierDetailsForm()
         {
@@ -59,64 +61,146 @@ namespace GestionEmployes.Forms
             this.Size = new Size(1800, 900);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.WindowState = FormWindowState.Maximized;
-            this.BackColor = Color.FromArgb(240, 245, 249); // Fond principal léger
+            this.BackColor = Color.FromArgb(240, 245, 249);
             this.Padding = new Padding(15);
+            this.AutoScroll = false;
 
             CreateAllControls();
             this.Load += SupplierDetailsForm_Load;
 
-            // S'abonner aux événements
             SubscribeToEvents();
         }
 
         private void SubscribeToEvents()
         {
-            EventBus.SupplierAdded += (s, e) => LoadSuppliersAsync();
-            EventBus.SupplierUpdated += (s, e) => LoadSuppliersAsync();
-            EventBus.SupplierDeleted += (s, e) => LoadSuppliersAsync();
+            // CORRECTION: Utiliser += avec des méthodes nommées
+            EventBus.SupplierAdded += OnSupplierAdded;
+            EventBus.SupplierUpdated += OnSupplierUpdated;
+            EventBus.SupplierDeleted += OnSupplierDeleted;
+            EventBus.FactureAdded += OnFactureAdded;
+            EventBus.FactureUpdated += OnFactureUpdated;
+            EventBus.FactureDeleted += OnFactureDeleted;
         }
 
         private void UnsubscribeFromEvents()
         {
-            EventBus.SupplierAdded -= (s, e) => LoadSuppliersAsync();
-            EventBus.SupplierUpdated -= (s, e) => LoadSuppliersAsync();
-            EventBus.SupplierDeleted -= (s, e) => LoadSuppliersAsync();
+            // CORRECTION: Utiliser -= pour se désabonner
+            EventBus.SupplierAdded -= OnSupplierAdded;
+            EventBus.SupplierUpdated -= OnSupplierUpdated;
+            EventBus.SupplierDeleted -= OnSupplierDeleted;
+            EventBus.FactureAdded -= OnFactureAdded;
+            EventBus.FactureUpdated -= OnFactureUpdated;
+            EventBus.FactureDeleted -= OnFactureDeleted;
+        }
+
+        // CORRECTION: Méthodes de gestion des événements
+        private void OnSupplierAdded(object sender, SupplierEventArgs e)
+        {
+            LoadSuppliersAsync();
+        }
+
+        private void OnSupplierUpdated(object sender, SupplierEventArgs e)
+        {
+            LoadSuppliersAsync();
+        }
+
+        private void OnSupplierDeleted(object sender, SupplierEventArgs e)
+        {
+            LoadSuppliersAsync();
+        }
+
+        private void OnFactureAdded(object sender, FactureEventArgs e)
+        {
+            LoadFacturesAsync();
+        }
+
+        private void OnFactureUpdated(object sender, FactureEventArgs e)
+        {
+            LoadFacturesAsync();
+        }
+
+        private void OnFactureDeleted(object sender, FactureEventArgs e)
+        {
+            LoadFacturesAsync();
         }
 
         private void CreateAllControls()
         {
+            // ==================== SPLIT CONTAINER - 50% / 50% ====================
+            var splitContainer = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Vertical,
+                SplitterWidth = 8,
+                BackColor = Color.FromArgb(240, 245, 249),
+                BorderStyle = BorderStyle.None,
+                FixedPanel = FixedPanel.None
+            };
+
+            var splitContainerRef = splitContainer;
+
+            this.Load += (s, e) =>
+            {
+                if (splitContainerRef.Width > 0)
+                {
+                    splitContainerRef.SplitterDistance = splitContainerRef.Width / 2;
+                }
+            };
+
+            bool userMovedSplitter = false;
+            splitContainerRef.SplitterMoved += (s, e) => { userMovedSplitter = true; };
+
+            splitContainerRef.Resize += (s, e) =>
+            {
+                if (!userMovedSplitter && splitContainerRef.Width > 0)
+                {
+                    splitContainerRef.SplitterDistance = splitContainerRef.Width / 2;
+                }
+            };
+
             // ==================== LEFT PANEL: SUPPLIERS ====================
             var leftPanel = new Panel
             {
-                Location = new Point(15, 15),
-                Size = new Size(880, 850),
-                BackColor = CardBackground,
-                Padding = new Padding(15),
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                Padding = new Padding(20),
                 BorderStyle = BorderStyle.FixedSingle
+            };
+
+            // Header Suppliers
+            var leftHeaderPanel = new Panel
+            {
+                Location = new Point(0, 0),
+                Size = new Size(leftPanel.Width - 40, 70),
+                BackColor = HeaderColor,
+                Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top
             };
 
             var leftTitle = new Label
             {
-                Text = "Fournisseurs",
+                Text = "GESTION DES FOURNISSEURS",
                 Font = new Font("Segoe UI", 16F, FontStyle.Bold),
-                ForeColor = PrimaryColor,
-                Location = new Point(15, 10),
+                ForeColor = Color.White,
+                Location = new Point(20, 20),
                 AutoSize = true
             };
-            leftPanel.Controls.Add(leftTitle);
+            leftHeaderPanel.Controls.Add(leftTitle);
+            leftPanel.Controls.Add(leftHeaderPanel);
 
             // ==================== SUPPLIERS DATAGRIDVIEW ====================
             dgvSuppliers = new DataGridView
             {
-                Location = new Point(15, 50),
-                Size = new Size(850, 250),
+                Location = new Point(20, 90),
+                Size = new Size(leftPanel.Width - 60, 300),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 AutoGenerateColumns = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
                 ReadOnly = true,
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.Fixed3D,
-                AllowUserToAddRows = false
+                AllowUserToAddRows = false,
+                RowHeadersVisible = false
             };
 
             // Style amélioré pour le DataGridView
@@ -128,6 +212,7 @@ namespace GestionEmployes.Forms
                 Alignment = DataGridViewContentAlignment.MiddleCenter
             };
             dgvSuppliers.ColumnHeadersHeight = 45;
+            dgvSuppliers.EnableHeadersVisualStyles = false;
 
             dgvSuppliers.DefaultCellStyle = new DataGridViewCellStyle
             {
@@ -143,89 +228,126 @@ namespace GestionEmployes.Forms
                 BackColor = Color.FromArgb(248, 250, 252)
             };
 
-            // Colonnes sans email
-            dgvSuppliers.Columns.Add(new DataGridViewTextBoxColumn { Name = "ID", HeaderText = "ID", DataPropertyName = "ID", Width = 60 });
-            dgvSuppliers.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "NOM", DataPropertyName = "Name", Width = 400 });
-            dgvSuppliers.Columns.Add(new DataGridViewTextBoxColumn { Name = "Phone", HeaderText = "TELEPHONE", DataPropertyName = "Phone", Width = 200 });
+            // Colonnes
+            dgvSuppliers.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "ID",
+                HeaderText = "ID",
+                DataPropertyName = "ID",
+                Width = 80
+            });
+            dgvSuppliers.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Name",
+                HeaderText = "NOM DU FOURNISSEUR",
+                DataPropertyName = "Name",
+                Width = 300
+            });
+            dgvSuppliers.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Phone",
+                HeaderText = "TÉLÉPHONE",
+                DataPropertyName = "Phone",
+                Width = 400
+            });
 
             dgvSuppliers.SelectionChanged += (s, e) => DgvSuppliers_SelectionChanged();
             leftPanel.Controls.Add(dgvSuppliers);
 
             // ==================== SUPPLIERS INPUT SECTION ====================
-            int inputY = 320;
-            int col1X = 15;
+            int inputY = 410;
+            int col1X = 20;
+            int controlWidth = 400;
+            int controlHeight = 40;
+
+            // Panel de formulaire Suppliers
+            var formPanel = new Panel
+            {
+                Location = new Point(15, inputY - 10),
+                Size = new Size(leftPanel.Width - 50, 400),
+                BackColor = FilterPanelColor,
+                BorderStyle = BorderStyle.None,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
 
             // Name
-            var lblName = CreateLabel("Nom *", col1X, inputY);
-            txtName = CreateTextBox(col1X, inputY + 25, 820, 40);
-            leftPanel.Controls.Add(lblName);
-            leftPanel.Controls.Add(txtName);
-
-            inputY += 80;
+            var lblName = CreateLabel("NOM DU FOURNISSEUR *", col1X, 20);
+            txtName = CreateTextBox(col1X, 50, controlWidth, controlHeight);
+            formPanel.Controls.Add(lblName);
+            formPanel.Controls.Add(txtName);
 
             // Phone
-            var lblPhone = CreateLabel("Téléphone", col1X, inputY);
-            txtPhone = CreateTextBox(col1X, inputY + 25, 820, 40);
+            var lblPhone = CreateLabel("TÉLÉPHONE", col1X, 110);
+            txtPhone = CreateTextBox(col1X, 140, controlWidth, controlHeight);
+            formPanel.Controls.Add(lblPhone);
+            formPanel.Controls.Add(txtPhone);
 
-            leftPanel.Controls.Add(lblPhone);
-            leftPanel.Controls.Add(txtPhone);
+            // ==================== SUPPLIERS BUTTONS ====================
+            int buttonY = 200;
+            int buttonWidth = 180;
+            int buttonHeight = 45;
 
-            inputY += 80;
-
-            // ==================== SUPPLIERS BUTTONS - 2 PAR LIGNE ====================
-            // Première ligne de boutons
-            btnAddSupplier = CreateButton("Ajouter", col1X, inputY, SuccessColor);
-            btnUpdateSupplier = CreateButton("Modifier", col1X + 210, inputY, InfoColor);
-
-            // Deuxième ligne de boutons
-            inputY += 70;
-            btnDeleteSupplier = CreateButton("Supprimer", col1X, inputY, DangerColor);
-            btnClearSupplier = CreateButton("Effacer", col1X + 210, inputY, WarningColor);
+            btnAddSupplier = CreateButton("AJOUTER", col1X, buttonY, buttonWidth, buttonHeight, SuccessColor);
+            btnUpdateSupplier = CreateButton("MODIFIER", col1X + 200, buttonY, buttonWidth, buttonHeight, InfoColor);
+            btnDeleteSupplier = CreateButton("SUPPRIMER", col1X, buttonY + 60, buttonWidth, buttonHeight, DangerColor);
+            btnClearSupplier = CreateButton("EFFACER", col1X + 200, buttonY + 60, buttonWidth, buttonHeight, WarningColor);
 
             btnAddSupplier.Click += BtnAddSupplier_Click;
             btnUpdateSupplier.Click += BtnUpdateSupplier_Click;
             btnDeleteSupplier.Click += BtnDeleteSupplier_Click;
             btnClearSupplier.Click += BtnClearSupplier_Click;
 
-            leftPanel.Controls.Add(btnAddSupplier);
-            leftPanel.Controls.Add(btnUpdateSupplier);
-            leftPanel.Controls.Add(btnDeleteSupplier);
-            leftPanel.Controls.Add(btnClearSupplier);
+            formPanel.Controls.Add(btnAddSupplier);
+            formPanel.Controls.Add(btnUpdateSupplier);
+            formPanel.Controls.Add(btnDeleteSupplier);
+            formPanel.Controls.Add(btnClearSupplier);
 
-            this.Controls.Add(leftPanel);
+            leftPanel.Controls.Add(formPanel);
+            splitContainer.Panel1.Controls.Add(leftPanel);
 
             // ==================== RIGHT PANEL: FACTURES ====================
             var rightPanel = new Panel
             {
-                Location = new Point(915, 15),
-                Size = new Size(880, 850),
-                BackColor = CardBackground,
-                Padding = new Padding(15),
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                Padding = new Padding(20),
                 BorderStyle = BorderStyle.FixedSingle
+            };
+
+            // Header Factures
+            var rightHeaderPanel = new Panel
+            {
+                Location = new Point(0, 0),
+                Size = new Size(rightPanel.Width - 40, 70),
+                BackColor = HeaderColor,
+                Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top
             };
 
             var rightTitle = new Label
             {
-                Text = "Factures",
+                Text = "GESTION DES FACTURES",
                 Font = new Font("Segoe UI", 16F, FontStyle.Bold),
-                ForeColor = PrimaryColor,
-                Location = new Point(15, 10),
+                ForeColor = Color.White,
+                Location = new Point(20, 20),
                 AutoSize = true
             };
-            rightPanel.Controls.Add(rightTitle);
+            rightHeaderPanel.Controls.Add(rightTitle);
+            rightPanel.Controls.Add(rightHeaderPanel);
 
             // ==================== FACTURES DATAGRIDVIEW ====================
             dgvFactures = new DataGridView
             {
-                Location = new Point(15, 50),
-                Size = new Size(850, 250),
+                Location = new Point(20, 90),
+                Size = new Size(rightPanel.Width - 60, 300),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 AutoGenerateColumns = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
                 ReadOnly = true,
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.Fixed3D,
-                AllowUserToAddRows = false
+                AllowUserToAddRows = false,
+                RowHeadersVisible = false
             };
 
             // Style amélioré pour le DataGridView des factures
@@ -237,6 +359,7 @@ namespace GestionEmployes.Forms
                 Alignment = DataGridViewContentAlignment.MiddleCenter
             };
             dgvFactures.ColumnHeadersHeight = 45;
+            dgvFactures.EnableHeadersVisualStyles = false;
 
             dgvFactures.DefaultCellStyle = new DataGridViewCellStyle
             {
@@ -252,28 +375,89 @@ namespace GestionEmployes.Forms
                 BackColor = Color.FromArgb(248, 250, 252)
             };
 
-            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn { Name = "ID", HeaderText = "ID", DataPropertyName = "Id", Width = 50 });
-            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn { Name = "Number", HeaderText = "N° FACTURE", DataPropertyName = "Number", Width = 120 });
-            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn { Name = "SupplierName", HeaderText = "FOURNISSEUR", DataPropertyName = "SupplierName", Width = 150 });
-            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn { Name = "Amount", HeaderText = "MONTANT", DataPropertyName = "Amount", Width = 120, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
-            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn { Name = "Advance", HeaderText = "AVANCE", DataPropertyName = "Advance", Width = 120, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
-            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn { Name = "Remaining", HeaderText = "RESTE", DataPropertyName = "Remaining", Width = 120, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
-            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn { Name = "Status", HeaderText = "STATUT", DataPropertyName = "Status", Width = 80, DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter } });
+            // Colonnes Factures
+            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "ID",
+                HeaderText = "ID",
+                DataPropertyName = "Id",
+                Width = 60
+            });
+            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Number",
+                HeaderText = "N° FACTURE",
+                DataPropertyName = "Number",
+                Width = 100
+            });
+            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "SupplierName",
+                HeaderText = "FOURNISSEUR",
+                DataPropertyName = "SupplierName",
+                Width = 130
+            });
+            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Amount",
+                HeaderText = "MONTANT",
+                DataPropertyName = "Amount",
+                Width = 100,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Advance",
+                HeaderText = "AVANCE",
+                DataPropertyName = "Advance",
+                Width = 100,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Remaining",
+                HeaderText = "RESTE",
+                DataPropertyName = "Remaining",
+                Width = 120,
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight }
+            });
+            dgvFactures.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Status",
+                HeaderText = "STATUT",
+                DataPropertyName = "Status",
+                Width = 100,
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
+            });
 
             dgvFactures.SelectionChanged += (s, e) => DgvFactures_SelectionChanged();
             rightPanel.Controls.Add(dgvFactures);
 
             // ==================== FACTURES INPUT SECTION ====================
-            inputY = 320;
-            col1X = 15;
+            inputY = 410;
+            col1X = 20;
+            int col2X = 450;
+            controlWidth = 380;
+            controlHeight = 40;
 
-            // Fournisseur ComboBox - Ligne 1
-            var lblSupplier = CreateLabel("Fournisseur *", col1X, inputY);
+            // Panel de formulaire Factures
+            var factureFormPanel = new Panel
+            {
+                Location = new Point(15, inputY - 10),
+                Size = new Size(rightPanel.Width - 50, 410),
+                BackColor = FilterPanelColor,
+                BorderStyle = BorderStyle.None,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+
+            // Ligne 1: Fournisseur + N° Facture
+            var lblSupplier = CreateLabel("FOURNISSEUR *", col1X, 20);
             cmbSupplier = new ComboBox
             {
-                Location = new Point(col1X, inputY + 25),
-                Size = new Size(400, 40),
-                Font = new Font("Segoe UI", 10F),
+                Location = new Point(col1X, 50),
+                Width = controlWidth - 70,
+                Height = controlHeight,
+                Font = new Font("Segoe UI", 11F),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 DisplayMember = "Name",
                 ValueMember = "ID",
@@ -282,87 +466,84 @@ namespace GestionEmployes.Forms
             };
             cmbSupplier.SelectedIndexChanged += (s, e) => CmbSupplier_SelectedIndexChanged();
 
-            // Numéro de facture - Ligne 1
-            var lblNumber = CreateLabel("N° Facture *", col1X + 420, inputY);
-            txtFactureNumber = CreateTextBox(col1X + 420, inputY + 25, 400, 40);
+            var lblNumber = CreateLabel("N° FACTURE *", col2X, 20);
+            txtFactureNumber = CreateTextBox(col2X, 50, controlWidth - 70, controlHeight);
 
-            rightPanel.Controls.Add(lblSupplier);
-            rightPanel.Controls.Add(cmbSupplier);
-            rightPanel.Controls.Add(lblNumber);
-            rightPanel.Controls.Add(txtFactureNumber);
+            factureFormPanel.Controls.Add(lblSupplier);
+            factureFormPanel.Controls.Add(cmbSupplier);
+            factureFormPanel.Controls.Add(lblNumber);
+            factureFormPanel.Controls.Add(txtFactureNumber);
 
-            inputY += 80;
+            // Ligne 2: Montant + Avance
+            var lblAmount = CreateLabel("MONTANT (DH) *", col1X, 110);
+            txtFactureAmount = CreateTextBox(col1X, 140, controlWidth - 70, controlHeight);
 
-            // Montant - Ligne 2
-            var lblAmount = CreateLabel("Montant (DH) *", col1X, inputY);
-            txtFactureAmount = CreateTextBox(col1X, inputY + 25, 400, 40);
-
-            // Avance - Ligne 2
-            var lblAdvance = CreateLabel("Avance (DH)", col1X + 420, inputY);
-            txtFactureAdvance = CreateTextBox(col1X + 420, inputY + 25, 400, 40);
+            var lblAdvance = CreateLabel("AVANCE (DH)", col2X, 110);
+            txtFactureAdvance = CreateTextBox(col2X, 140, controlWidth - 70, controlHeight);
             txtFactureAdvance.Text = "0";
 
-            rightPanel.Controls.Add(lblAmount);
-            rightPanel.Controls.Add(txtFactureAmount);
-            rightPanel.Controls.Add(lblAdvance);
-            rightPanel.Controls.Add(txtFactureAdvance);
+            factureFormPanel.Controls.Add(lblAmount);
+            factureFormPanel.Controls.Add(txtFactureAmount);
+            factureFormPanel.Controls.Add(lblAdvance);
+            factureFormPanel.Controls.Add(txtFactureAdvance);
 
-            inputY += 80;
-
-            // Date Facture - Ligne 3
-            var lblInvoiceDate = CreateLabel("Date Facture *", col1X, inputY);
+            // Ligne 3: Date Facture + Échéance
+            var lblInvoiceDate = CreateLabel("DATE FACTURE *", col1X, 200);
             dtpInvoiceDate = new DateTimePicker
             {
-                Location = new Point(col1X, inputY + 25),
-                Size = new Size(400, 35),
+                Location = new Point(col1X, 230),
+                Width = controlWidth - 70,
+                Height = controlHeight,
                 Format = DateTimePickerFormat.Short,
                 Value = DateTime.Today,
-                Font = new Font("Segoe UI", 10F),
+                Font = new Font("Segoe UI", 11F),
                 BackColor = Color.White,
                 ForeColor = TextColor
             };
 
-            // Date Échéance - Ligne 3
-            var lblDueDate = CreateLabel("Échéance *", col1X + 420, inputY);
+            var lblDueDate = CreateLabel("ÉCHÉANCE *", col2X, 200);
             dtpDueDate = new DateTimePicker
             {
-                Location = new Point(col1X + 420, inputY + 25),
-                Size = new Size(320, 35),
+                Location = new Point(col2X, 230),
+                Width = controlWidth - 70,
+                Height = controlHeight,
                 Format = DateTimePickerFormat.Short,
                 Value = DateTime.Today.AddDays(30),
-                Font = new Font("Segoe UI", 10F),
+                Font = new Font("Segoe UI", 11F),
                 BackColor = Color.White,
                 ForeColor = TextColor
             };
 
-            rightPanel.Controls.Add(lblInvoiceDate);
-            rightPanel.Controls.Add(dtpInvoiceDate);
-            rightPanel.Controls.Add(lblDueDate);
-            rightPanel.Controls.Add(dtpDueDate);
+            factureFormPanel.Controls.Add(lblInvoiceDate);
+            factureFormPanel.Controls.Add(dtpInvoiceDate);
+            factureFormPanel.Controls.Add(lblDueDate);
+            factureFormPanel.Controls.Add(dtpDueDate);
 
-            inputY += 80;
+            // ==================== FACTURES BUTTONS ====================
+            int factureButtonY = 290;
+            int factureButtonWidth = 180;
+            int factureButtonHeight = 45;
 
-            // ==================== FACTURES BUTTONS - 2 PAR LIGNE ====================
-            // Première ligne de boutons
-            btnAddFacture = CreateButton("Ajouter", col1X, inputY, SuccessColor);
-            btnUpdateFacture = CreateButton("Modifier", col1X + 210, inputY, InfoColor);
-
-            // Deuxième ligne de boutons
-            inputY += 70;
-            btnDeleteFacture = CreateButton("Supprimer", col1X, inputY, DangerColor);
-            btnClearFacture = CreateButton("Effacer", col1X + 210, inputY, WarningColor);
+            btnAddFacture = CreateButton("AJOUTER", col1X, factureButtonY, factureButtonWidth, factureButtonHeight, SuccessColor);
+            btnUpdateFacture = CreateButton("MODIFIER", col1X + 200, factureButtonY, factureButtonWidth, factureButtonHeight, InfoColor);
+            // Place two buttons per row: second row starts at factureButtonY + 60
+            btnDeleteFacture = CreateButton("SUPPRIMER", col1X, factureButtonY + 60, factureButtonWidth, factureButtonHeight, DangerColor);
+            btnClearFacture = CreateButton("EFFACER", col1X + 200, factureButtonY + 60, factureButtonWidth, factureButtonHeight, WarningColor);
 
             btnAddFacture.Click += BtnAddFacture_Click;
             btnUpdateFacture.Click += BtnUpdateFacture_Click;
             btnDeleteFacture.Click += BtnDeleteFacture_Click;
             btnClearFacture.Click += BtnClearFacture_Click;
 
-            rightPanel.Controls.Add(btnAddFacture);
-            rightPanel.Controls.Add(btnUpdateFacture);
-            rightPanel.Controls.Add(btnDeleteFacture);
-            rightPanel.Controls.Add(btnClearFacture);
+            factureFormPanel.Controls.Add(btnAddFacture);
+            factureFormPanel.Controls.Add(btnUpdateFacture);
+            factureFormPanel.Controls.Add(btnDeleteFacture);
+            factureFormPanel.Controls.Add(btnClearFacture);
 
-            this.Controls.Add(rightPanel);
+            rightPanel.Controls.Add(factureFormPanel);
+            splitContainer.Panel2.Controls.Add(rightPanel);
+
+            this.Controls.Add(splitContainer);
         }
 
         private void CmbSupplier_SelectedIndexChanged()
@@ -379,9 +560,9 @@ namespace GestionEmployes.Forms
             {
                 Text = text,
                 Location = new Point(x, y),
-                Size = new Size(400, 20),
+                Size = new Size(400, 25),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                ForeColor = TextColor,
+                ForeColor = HeaderColor,
                 AutoSize = false
             };
         }
@@ -392,20 +573,20 @@ namespace GestionEmployes.Forms
             {
                 Location = new Point(x, y),
                 Size = new Size(width, height),
-                Font = new Font("Segoe UI", 10F),
+                Font = new Font("Segoe UI", 11F),
                 BorderStyle = BorderStyle.FixedSingle,
                 BackColor = Color.White,
                 ForeColor = TextColor
             };
         }
 
-        private Button CreateButton(string text, int x, int y, Color backColor)
+        private Button CreateButton(string text, int x, int y, int width, int height, Color backColor)
         {
             return new Button
             {
                 Text = text,
                 Location = new Point(x, y),
-                Size = new Size(200, 50),
+                Size = new Size(width, height),
                 Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
                 BackColor = backColor,
                 ForeColor = Color.White,
@@ -474,7 +655,7 @@ namespace GestionEmployes.Forms
                     displayList.Add(new
                     {
                         Id = facture.Id,
-                        Number = facture.Number,
+                        Number = facture.Number ?? "",
                         SupplierName = facture.Supplier?.Name ?? "Inconnu",
                         Amount = facture.Amount,
                         Advance = facture.Advance,
@@ -482,11 +663,15 @@ namespace GestionEmployes.Forms
                         Status = remaining <= 0 ? "Payée" : "En cours",
                         InvoiceDate = facture.InvoiceDate,
                         DueDate = facture.DueDate,
-                        FactureObj = facture
+                        FactureObj = facture // CORRECTION: S'assurer que FactureObj est bien assigné
                     });
                 }
 
                 dgvFactures.DataSource = displayList;
+
+                // CORRECTION: Réinitialiser la sélection après le chargement
+                _selectedFacture = null;
+                ClearFactureForm();
             }
             catch (Exception ex)
             {
@@ -502,7 +687,6 @@ namespace GestionEmployes.Forms
                 _selectedSupplier = dgvSuppliers.SelectedRows[0].DataBoundItem as Supplier;
                 FillSupplierForm(_selectedSupplier);
 
-                // Mettre à jour le ComboBox dans la partie Facture
                 if (_selectedSupplier != null)
                 {
                     cmbSupplier.SelectedValue = _selectedSupplier.ID;
@@ -590,7 +774,7 @@ namespace GestionEmployes.Forms
                     await LoadSuppliersAsync();
                     await LoadSuppliersComboBoxAsync();
 
-                    if (_selectedSupplier != null && !string.IsNullOrEmpty(_selectedSupplier.Name))
+                    if (_selectedSupplier != null)
                     {
                         // Déclencher les événements pour le dashboard
                         EventBus.OnSupplierUpdated(this, _selectedSupplier.ID, _selectedSupplier.Name);
@@ -617,7 +801,6 @@ namespace GestionEmployes.Forms
                     return;
                 }
 
-                // Vérifier s'il y a des factures liées à ce fournisseur
                 bool hasFactures = _factures?.Any(f => f.SupplierId == _selectedSupplier.ID) ?? false;
 
                 if (hasFactures)
@@ -668,22 +851,37 @@ namespace GestionEmployes.Forms
         // ==================== FACTURES EVENTS ====================
         private void DgvFactures_SelectionChanged()
         {
-            if (dgvFactures.SelectedRows.Count > 0)
+            try
             {
-                var displayItem = dgvFactures.SelectedRows[0].DataBoundItem;
-                if (displayItem != null)
+                if (dgvFactures.SelectedRows.Count > 0 && dgvFactures.SelectedRows[0].DataBoundItem != null)
                 {
-                    dynamic item = displayItem;
-                    _selectedFacture = item.FactureObj;
-                    FillFactureForm(_selectedFacture);
+                    var displayItem = dgvFactures.SelectedRows[0].DataBoundItem;
 
-                    // Sélectionner le fournisseur correspondant dans le ComboBox
-                    if (_selectedFacture != null)
+                    // CORRECTION: Utiliser la réflexion pour accéder à la propriété FactureObj
+                    var factureObjProperty = displayItem.GetType().GetProperty("FactureObj");
+                    if (factureObjProperty != null)
                     {
-                        cmbSupplier.SelectedValue = _selectedFacture.SupplierId;
-                        _selectedSupplier = _suppliers.FirstOrDefault(s => s.ID == _selectedFacture.SupplierId);
+                        _selectedFacture = factureObjProperty.GetValue(displayItem) as Facture;
+
+                        if (_selectedFacture != null)
+                        {
+                            FillFactureForm(_selectedFacture);
+
+                            cmbSupplier.SelectedValue = _selectedFacture.SupplierId;
+                            _selectedSupplier = _suppliers.FirstOrDefault(s => s.ID == _selectedFacture.SupplierId);
+                        }
                     }
                 }
+                else
+                {
+                    // CORRECTION: Réinitialiser si aucune sélection
+                    _selectedFacture = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur lors de la sélection: {ex.Message}", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _selectedFacture = null;
             }
         }
 
@@ -705,8 +903,14 @@ namespace GestionEmployes.Forms
             txtFactureAdvance.Text = "0";
             dtpInvoiceDate.Value = DateTime.Today;
             dtpDueDate.Value = DateTime.Today.AddDays(30);
+
+            // CORRECTION: Réinitialiser la sélection
             _selectedFacture = null;
-            dgvFactures.ClearSelection();
+
+            if (dgvFactures != null)
+            {
+                dgvFactures.ClearSelection();
+            }
         }
 
         private async void BtnAddFacture_Click(object sender, EventArgs e)
@@ -768,6 +972,7 @@ namespace GestionEmployes.Forms
         {
             try
             {
+                // CORRECTION: Vérifier si _selectedFacture est null AVANT de l'utiliser
                 if (_selectedFacture == null)
                 {
                     MessageBox.Show("Veuillez sélectionner une facture", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -797,23 +1002,33 @@ namespace GestionEmployes.Forms
 
                 var selectedSupplier = cmbSupplier.SelectedItem as Supplier;
 
-                _selectedFacture.Number = txtFactureNumber.Text.Trim();
-                _selectedFacture.SupplierId = selectedSupplier.ID;
-                _selectedFacture.Amount = amount;
-                _selectedFacture.Advance = advance;
-                _selectedFacture.InvoiceDate = dtpInvoiceDate.Value;
-                _selectedFacture.DueDate = dtpDueDate.Value;
-
-                if (_factureService.UpdateFacture(_selectedFacture))
+                // CORRECTION: Vérifier que _selectedFacture n'est pas null
+                if (_selectedFacture != null)
                 {
-                    await LoadFacturesAsync();
-                    ClearFactureForm();
+                    // Mettre à jour l'entité sélectionnée
+                    _selectedFacture.Number = txtFactureNumber.Text.Trim();
+                    _selectedFacture.SupplierId = selectedSupplier.ID;
+                    _selectedFacture.Amount = amount;
+                    _selectedFacture.Advance = advance;
+                    _selectedFacture.InvoiceDate = dtpInvoiceDate.Value;
+                    _selectedFacture.DueDate = dtpDueDate.Value;
 
-                    // Déclencher les événements pour le dashboard
-                    EventBus.OnFactureUpdated(this, _selectedFacture.Id, _selectedFacture.Number, _selectedFacture.SupplierId, _selectedFacture.Amount);
-                    EventBus.OnDataChanged(this, "Facture modifiée");
+                    // Capturer les valeurs avant tout rafraîchissement
+                    int updatedId = _selectedFacture.Id;
+                    string updatedNumber = _selectedFacture.Number ?? "";
+                    int updatedSupplierId = _selectedFacture.SupplierId;
+                    decimal updatedAmount = _selectedFacture.Amount;
 
-                    MessageBox.Show("Facture modifiée avec succès!", "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    if (_factureService.UpdateFacture(_selectedFacture))
+                    {
+                        // Déclencher les événements immédiatement, indépendamment du rafraîchissement
+                        EventBus.OnFactureUpdated(this, updatedId, updatedNumber, updatedSupplierId, updatedAmount);
+
+                        await LoadFacturesAsync();
+
+                        ClearFactureForm();
+                        MessageBox.Show("Facture modifiée avec succès!", "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
                 }
             }
             catch (Exception ex)
@@ -837,16 +1052,19 @@ namespace GestionEmployes.Forms
 
                 if (result == DialogResult.Yes)
                 {
+                    // Capturer les informations avant suppression/clear
                     int factureId = _selectedFacture.Id;
+                    string factureNumber = _selectedFacture.Number ?? string.Empty;
+                    int supplierId = _selectedFacture.SupplierId;
+                    decimal factureAmount = _selectedFacture.Amount;
 
                     if (_factureService.DeleteFacture(factureId))
                     {
+                        // Déclencher les événements immédiatement
+                        EventBus.OnFactureDeleted(this, factureId, factureNumber, supplierId, factureAmount);
+
                         await LoadFacturesAsync();
                         ClearFactureForm();
-
-                        // Déclencher les événements pour le dashboard
-                        EventBus.OnFactureDeleted(this, factureId, _selectedFacture.Number, _selectedFacture.SupplierId, _selectedFacture.Amount);
-                        EventBus.OnDataChanged(this, "Facture supprimée");
 
                         MessageBox.Show("Facture supprimée avec succès!", "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }

@@ -96,13 +96,15 @@ namespace GestionEmployes.Utils
 
         // Événements pour les avances
         public static event EventHandler<AvanceEventArgs> AvanceAdded;
+        public static event EventHandler<AvanceEventArgs> AvanceUpdated;
         public static event EventHandler<AvanceEventArgs> AvanceDeleted;
 
         // Événements pour les absences
         public static event EventHandler<AbsenceEventArgs> AbsenceAdded;
+        public static event EventHandler<AbsenceEventArgs> AbsenceUpdated;
         public static event EventHandler<AbsenceEventArgs> AbsenceDeleted;
 
-        // Événements pour les fournisseurs (utilisent votre classe existante)
+        // Événements pour les fournisseurs
         public static event EventHandler<SupplierEventArgs> SupplierAdded;
         public static event EventHandler<SupplierEventArgs> SupplierUpdated;
         public static event EventHandler<SupplierEventArgs> SupplierDeleted;
@@ -117,50 +119,248 @@ namespace GestionEmployes.Utils
 
         // Méthodes pour déclencher les événements - EMPLOYÉS
         public static void OnEmployeAdded(object source, string cin, string nom, string prenom)
-            => EmployeAdded?.Invoke(source, new EmployeEventArgs(cin, nom, prenom));
+        {
+            try
+            {
+                EmployeAdded?.Invoke(source, new EmployeEventArgs(cin, nom, prenom));
+                OnDataChanged(source, "Employé ajouté");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnEmployeAdded: {ex.Message}");
+            }
+        }
 
         public static void OnEmployeUpdated(object source, string cin, string nom, string prenom)
-            => EmployeUpdated?.Invoke(source, new EmployeEventArgs(cin, nom, prenom));
+        {
+            try
+            {
+                EmployeUpdated?.Invoke(source, new EmployeEventArgs(cin, nom, prenom));
+                OnDataChanged(source, "Employé modifié");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnEmployeUpdated: {ex.Message}");
+            }
+        }
 
         public static void OnEmployeDeleted(object source, string cin, string nom, string prenom)
-            => EmployeDeleted?.Invoke(source, new EmployeEventArgs(cin, nom, prenom));
+        {
+            try
+            {
+                EmployeDeleted?.Invoke(source, new EmployeEventArgs(cin, nom, prenom));
+                OnDataChanged(source, "Employé supprimé");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnEmployeDeleted: {ex.Message}");
+            }
+        }
 
         // Méthodes pour déclencher les événements - AVANCES
         public static void OnAvanceAdded(object source, long id, string cin, decimal montant)
-            => AvanceAdded?.Invoke(source, new AvanceEventArgs(id, cin, montant));
+        {
+            try
+            {
+                AvanceAdded?.Invoke(source, new AvanceEventArgs(id, cin, montant));
+                OnDataChanged(source, "Avance ajoutée");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnAvanceAdded: {ex.Message}");
+            }
+        }
+
+        public static void OnAvanceUpdated(object source, long id, string cin, decimal montant)
+        {
+            try
+            {
+                AvanceUpdated?.Invoke(source, new AvanceEventArgs(id, cin, montant));
+                OnDataChanged(source, "Avance modifiée");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnAvanceUpdated: {ex.Message}");
+            }
+        }
 
         public static void OnAvanceDeleted(object source, long id, string cin, decimal montant)
-            => AvanceDeleted?.Invoke(source, new AvanceEventArgs(id, cin, montant));
+        {
+            try
+            {
+                AvanceDeleted?.Invoke(source, new AvanceEventArgs(id, cin, montant));
+                OnDataChanged(source, "Avance supprimée");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnAvanceDeleted: {ex.Message}");
+            }
+        }
 
         // Méthodes pour déclencher les événements - ABSENCES
         public static void OnAbsenceAdded(object source, long id, string cin, decimal penalite)
-            => AbsenceAdded?.Invoke(source, new AbsenceEventArgs(id, cin, penalite));
+        {
+            try
+            {
+                AbsenceAdded?.Invoke(source, new AbsenceEventArgs(id, cin, penalite));
+                OnDataChanged(source, "Absence ajoutée");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnAbsenceAdded: {ex.Message}");
+            }
+        }
+
+        public static void OnAbsenceUpdated(object source, long id, string cin, decimal penalite)
+        {
+            try
+            {
+                AbsenceUpdated?.Invoke(source, new AbsenceEventArgs(id, cin, penalite));
+                OnDataChanged(source, "Absence modifiée");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnAbsenceUpdated: {ex.Message}");
+            }
+        }
 
         public static void OnAbsenceDeleted(object source, long id, string cin, decimal penalite)
-            => AbsenceDeleted?.Invoke(source, new AbsenceEventArgs(id, cin, penalite));
+        {
+            try
+            {
+                AbsenceDeleted?.Invoke(source, new AbsenceEventArgs(id, cin, penalite));
+                OnDataChanged(source, "Absence supprimée");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnAbsenceDeleted: {ex.Message}");
+            }
+        }
 
-        // Méthodes pour déclencher les événements - FOURNISSEURS (votre code existant)
+        // Méthodes pour déclencher les événements - FOURNISSEURS
         public static void OnSupplierAdded(object source, int supplierId, string supplierName)
-            => SupplierAdded?.Invoke(source, new SupplierEventArgs(supplierId, supplierName));
+        {
+            try
+            {
+                SupplierAdded?.Invoke(source, new SupplierEventArgs(supplierId, supplierName));
+                OnDataChanged(source, "Fournisseur ajouté");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnSupplierAdded: {ex.Message}");
+            }
+        }
 
         public static void OnSupplierUpdated(object source, int supplierId, string supplierName)
-            => SupplierUpdated?.Invoke(source, new SupplierEventArgs(supplierId, supplierName));
+        {
+            try
+            {
+                SupplierUpdated?.Invoke(source, new SupplierEventArgs(supplierId, supplierName));
+                OnDataChanged(source, "Fournisseur modifié");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnSupplierUpdated: {ex.Message}");
+            }
+        }
 
         public static void OnSupplierDeleted(object source, int supplierId, string supplierName)
-            => SupplierDeleted?.Invoke(source, new SupplierEventArgs(supplierId, supplierName));
+        {
+            try
+            {
+                SupplierDeleted?.Invoke(source, new SupplierEventArgs(supplierId, supplierName));
+                OnDataChanged(source, "Fournisseur supprimé");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnSupplierDeleted: {ex.Message}");
+            }
+        }
 
         // Méthodes pour déclencher les événements - FACTURES
         public static void OnFactureAdded(object source, int id, string number, int supplierId, decimal amount)
-            => FactureAdded?.Invoke(source, new FactureEventArgs(id, number, supplierId, amount));
+        {
+            try
+            {
+                FactureAdded?.Invoke(source, new FactureEventArgs(id, number, supplierId, amount));
+                OnDataChanged(source, "Facture ajoutée");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnFactureAdded: {ex.Message}");
+            }
+        }
 
         public static void OnFactureUpdated(object source, int id, string number, int supplierId, decimal amount)
-            => FactureUpdated?.Invoke(source, new FactureEventArgs(id, number, supplierId, amount));
+        {
+            try
+            {
+                FactureUpdated?.Invoke(source, new FactureEventArgs(id, number, supplierId, amount));
+                OnDataChanged(source, "Facture modifiée");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnFactureUpdated: {ex.Message}");
+            }
+        }
 
         public static void OnFactureDeleted(object source, int id, string number, int supplierId, decimal amount)
-            => FactureDeleted?.Invoke(source, new FactureEventArgs(id, number, supplierId, amount));
+        {
+            try
+            {
+                FactureDeleted?.Invoke(source, new FactureEventArgs(id, number, supplierId, amount));
+                OnDataChanged(source, "Facture supprimée");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnFactureDeleted: {ex.Message}");
+            }
+        }
 
         // Méthode générique pour tout changement de données
         public static void OnDataChanged(object source, string message = "Données mises à jour")
-            => DataChanged?.Invoke(source, new GenericEventArgs(message));
+        {
+            try
+            {
+                DataChanged?.Invoke(source, new GenericEventArgs(message));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans OnDataChanged: {ex.Message}");
+            }
+        }
+
+        // Méthode utilitaire pour nettoyer tous les abonnements (optionnel)
+        public static void ClearAllSubscriptions()
+        {
+            try
+            {
+                EmployeAdded = null;
+                EmployeUpdated = null;
+                EmployeDeleted = null;
+
+                AvanceAdded = null;
+                AvanceUpdated = null;
+                AvanceDeleted = null;
+
+                AbsenceAdded = null;
+                AbsenceUpdated = null;
+                AbsenceDeleted = null;
+
+                SupplierAdded = null;
+                SupplierUpdated = null;
+                SupplierDeleted = null;
+
+                FactureAdded = null;
+                FactureUpdated = null;
+                FactureDeleted = null;
+
+                DataChanged = null;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur dans ClearAllSubscriptions: {ex.Message}");
+            }
+        }
     }
 }

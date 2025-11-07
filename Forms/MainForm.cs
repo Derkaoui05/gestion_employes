@@ -15,6 +15,7 @@ namespace GestionEmployes.Forms
         private ReportService _reportService;
         private SupplierService _supplierService;
         private FactureService _factureService;
+        private DashboardService _dashboardService;
 
         public MainForm()
         {
@@ -40,19 +41,26 @@ namespace GestionEmployes.Forms
 
         private void InitializeServices()
         {
-            _employeService = new EmployeService(DatabaseHelper.CreateNewContext());
-            _avanceService = new AvanceService(DatabaseHelper.CreateNewContext());
-            _absenceService = new AbsenceService(DatabaseHelper.CreateNewContext());
-            _reportService = new ReportService(
-                 DatabaseHelper.CreateNewContext(),
-                 new EmployeService(DatabaseHelper.CreateNewContext()), // Nouvelle instance
-                 new AvanceService(DatabaseHelper.CreateNewContext()),  // Nouvelle instance
-                 new AbsenceService(DatabaseHelper.CreateNewContext())  // Nouvelle instance
-             );
+            // Créer un contexte partagé pour la cohérence des données
+            var context = DatabaseHelper.CreateNewContext();
 
-            // 🔴 NOUVEL AJOUT - Services pour Suppliers et Factures
+            _employeService = new EmployeService(context);
+            _avanceService = new AvanceService(context);
+            _absenceService = new AbsenceService(context);
+
+            _reportService = new ReportService(
+                context,
+                new EmployeService(DatabaseHelper.CreateNewContext()),
+                new AvanceService(DatabaseHelper.CreateNewContext()),
+                new AbsenceService(DatabaseHelper.CreateNewContext())
+            );
+
+            // Services pour Suppliers et Factures
             _supplierService = new SupplierService();
             _factureService = new FactureService();
+
+            // Service Dashboard - CORRECTION: Ajout du DashboardService
+            _dashboardService = new DashboardService(context);
         }
 
         private void SetupForm()
@@ -142,11 +150,18 @@ namespace GestionEmployes.Forms
 
             tabControl.TabPages.Add(rapportTab);
 
-
-            var dashboardTab = new TabPage("📊 Tableau de Bord");
+            // ==================== TAB 4: DASHBOARD ====================
+            var dashboardTab = new TabPage("📈 Tableau de Bord");
             try
             {
-                var dashboardForm = new DashboardForm(_employeService, _avanceService, _absenceService, _supplierService, _factureService)
+                // CORRECTION: Passer tous les services requis au DashboardForm
+                var dashboardForm = new DashboardForm(
+                    _employeService,
+                    _avanceService,
+                    _absenceService,
+                    _supplierService,
+                    _factureService,
+                    _dashboardService)  // Ajout du DashboardService
                 {
                     TopLevel = false,
                     FormBorderStyle = FormBorderStyle.None,
@@ -175,6 +190,12 @@ namespace GestionEmployes.Forms
                 Font = new Font("Segoe UI", 12F, FontStyle.Bold)
             };
             tab.Controls.Add(label);
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            // Nettoyage des ressources si nécessaire
+            base.OnFormClosed(e);
         }
     }
 }

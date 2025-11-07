@@ -37,6 +37,7 @@ namespace GestionEmployes.Services
                     _context = DatabaseHelper.CreateNewContext();
 
                 return _context.Set<Facture>()
+                    .AsNoTracking()
                     .Include(f => f.Supplier)
                     .Include(f => f.Transactions)
                     .OrderByDescending(f => f.InvoiceDate)
@@ -58,6 +59,7 @@ namespace GestionEmployes.Services
                     _context = DatabaseHelper.CreateNewContext();
 
                 return _context.Set<Facture>()
+                    .AsNoTracking()
                     .Include(f => f.Supplier)
                     .Include(f => f.Transactions)
                     .Where(f => f.SupplierId == supplierId)
@@ -79,6 +81,7 @@ namespace GestionEmployes.Services
                     _context = DatabaseHelper.CreateNewContext();
 
                 return _context.Set<Facture>()
+                    .AsNoTracking()
                     .Include(f => f.Supplier)
                     .Include(f => f.Transactions)
                     .FirstOrDefault(f => f.Id == id);
@@ -239,6 +242,7 @@ namespace GestionEmployes.Services
                     _context = DatabaseHelper.CreateNewContext();
 
                 return _context.Set<Facture>()
+                    .AsNoTracking()
                     .Include(f => f.Supplier)
                     .Where(f => f.Remaining > 0)
                     .OrderBy(f => f.DueDate)
@@ -259,6 +263,7 @@ namespace GestionEmployes.Services
                     _context = DatabaseHelper.CreateNewContext();
 
                 return _context.Set<Facture>()
+                    .AsNoTracking()
                     .Include(f => f.Supplier)
                     .Where(f => f.DueDate < DateTime.Today && f.Remaining > 0)
                     .OrderBy(f => f.DueDate)

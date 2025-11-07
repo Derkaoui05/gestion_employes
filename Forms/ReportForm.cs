@@ -1,3 +1,4 @@
+using GestionEmployes.Data;
 using GestionEmployes.Models;
 using GestionEmployes.Services;
 using GestionEmployes.Utils;
@@ -15,8 +16,20 @@ namespace GestionEmployes.Forms
 {
     public partial class ReportForm : Form
     {
-        private readonly ReportService _reportService;
+        private ReportService _reportService;
         private List<WeeklyReport> _currentReports;
+
+        // Handlers pour les événements (nécessaires pour la désinscription)
+        private EventHandler<EmployeEventArgs> _employeAddedHandler;
+        private EventHandler<EmployeEventArgs> _employeUpdatedHandler;
+        private EventHandler<EmployeEventArgs> _employeDeletedHandler;
+        private EventHandler<AvanceEventArgs> _avanceAddedHandler;
+        private EventHandler<AvanceEventArgs> _avanceUpdatedHandler;
+        private EventHandler<AvanceEventArgs> _avanceDeletedHandler;
+        private EventHandler<AbsenceEventArgs> _absenceAddedHandler;
+        private EventHandler<AbsenceEventArgs> _absenceUpdatedHandler;
+        private EventHandler<AbsenceEventArgs> _absenceDeletedHandler;
+        private EventHandler<GenericEventArgs> _dataChangedHandler;
 
         public ReportForm(ReportService reportService)
         {
@@ -24,6 +37,7 @@ namespace GestionEmployes.Forms
             InitializeComponent();
             ApplyCustomTheme();
             SetupForm();
+            SubscribeToEvents();
             LoadCurrentWeekReport();
         }
 
@@ -281,24 +295,75 @@ namespace GestionEmployes.Forms
         {
             try
             {
-                lblStatus.Text = "Chargement du rapport de la semaine courante...";
-                lblStatus.ForeColor = Color.FromArgb(52, 152, 219);
+                // Mettre à jour le statut sur le thread UI
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(() =>
+                    {
+                        lblStatus.Text = "Chargement du rapport de la semaine courante...";
+                        lblStatus.ForeColor = Color.FromArgb(52, 152, 219);
+                    }));
+                }
+                else
+                {
+                    lblStatus.Text = "Chargement du rapport de la semaine courante...";
+                    lblStatus.ForeColor = Color.FromArgb(52, 152, 219);
+                }
 
+                // Créer un nouveau ReportService avec de nouveaux contextes pour s'assurer d'avoir les données fraîches
+                // Cela évite les problèmes de cache d'Entity Framework
+                _reportService = new ReportService(
+                    DatabaseHelper.CreateNewContext(),
+                    new EmployeService(DatabaseHelper.CreateNewContext()),
+                    new AvanceService(DatabaseHelper.CreateNewContext()),
+                    new AbsenceService(DatabaseHelper.CreateNewContext())
+                );
+
+                // Charger les données (peut être fait sur n'importe quel thread)
                 _currentReports = await _reportService.GenerateCurrentWeekReportAsync();
-                dgvReports.DataSource = _currentReports;
-
-                dgvReports.AutoResizeColumns();
-                UpdateSummaryLabels();
-
-                lblStatus.Text = $"Rapport chargé: {_currentReports.Count} employés";
-                lblStatus.ForeColor = Color.FromArgb(39, 174, 96);
+                
+                // Mettre à jour l'UI sur le thread UI
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(() =>
+                    {
+                        dgvReports.DataSource = _currentReports;
+                        dgvReports.AutoResizeColumns();
+                        UpdateSummaryLabels();
+                        UpdateButtonStates();
+                        lblStatus.Text = $"Rapport chargé: {_currentReports.Count} employés";
+                        lblStatus.ForeColor = Color.FromArgb(39, 174, 96);
+                    }));
+                }
+                else
+                {
+                    dgvReports.DataSource = _currentReports;
+                    dgvReports.AutoResizeColumns();
+                    UpdateSummaryLabels();
+                    UpdateButtonStates();
+                    lblStatus.Text = $"Rapport chargé: {_currentReports.Count} employés";
+                    lblStatus.ForeColor = Color.FromArgb(39, 174, 96);
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Erreur lors du chargement du rapport: {ex.Message}", "Erreur",
-                              MessageBoxButtons.OK, MessageBoxIcon.Error);
-                lblStatus.Text = "Erreur lors du chargement";
-                lblStatus.ForeColor = Color.FromArgb(231, 76, 60);
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(() =>
+                    {
+                        MessageBox.Show($"Erreur lors du chargement du rapport: {ex.Message}", "Erreur",
+                                      MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        lblStatus.Text = "Erreur lors du chargement";
+                        lblStatus.ForeColor = Color.FromArgb(231, 76, 60);
+                    }));
+                }
+                else
+                {
+                    MessageBox.Show($"Erreur lors du chargement du rapport: {ex.Message}", "Erreur",
+                                  MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    lblStatus.Text = "Erreur lors du chargement";
+                    lblStatus.ForeColor = Color.FromArgb(231, 76, 60);
+                }
             }
         }
 
@@ -418,6 +483,92 @@ namespace GestionEmployes.Forms
             {
                 dgvReports.AutoResizeColumns();
             }
+        }
+
+        private void SubscribeToEvents()
+        {
+            // Créer les handlers une seule fois
+            _employeAddedHandler = (s, e) => RefreshReport();
+            _employeUpdatedHandler = (s, e) => RefreshReport();
+            _employeDeletedHandler = (s, e) => RefreshReport();
+            _avanceAddedHandler = (s, e) => RefreshReport();
+            _avanceUpdatedHandler = (s, e) => RefreshReport();
+            _avanceDeletedHandler = (s, e) => RefreshReport();
+            _absenceAddedHandler = (s, e) => RefreshReport();
+            _absenceUpdatedHandler = (s, e) => RefreshReport();
+            _absenceDeletedHandler = (s, e) => RefreshReport();
+            _dataChangedHandler = (s, e) => RefreshReport();
+
+            // S'abonner à tous les événements de modification des employés, avances et absences
+            EventBus.EmployeAdded += _employeAddedHandler;
+            EventBus.EmployeUpdated += _employeUpdatedHandler;
+            EventBus.EmployeDeleted += _employeDeletedHandler;
+
+            EventBus.AvanceAdded += _avanceAddedHandler;
+            EventBus.AvanceUpdated += _avanceUpdatedHandler;
+            EventBus.AvanceDeleted += _avanceDeletedHandler;
+
+            EventBus.AbsenceAdded += _absenceAddedHandler;
+            EventBus.AbsenceUpdated += _absenceUpdatedHandler;
+            EventBus.AbsenceDeleted += _absenceDeletedHandler;
+
+            // S'abonner à l'événement générique
+            EventBus.DataChanged += _dataChangedHandler;
+        }
+
+        private void UnsubscribeFromEvents()
+        {
+            // Se désabonner de tous les événements
+            if (_employeAddedHandler != null) EventBus.EmployeAdded -= _employeAddedHandler;
+            if (_employeUpdatedHandler != null) EventBus.EmployeUpdated -= _employeUpdatedHandler;
+            if (_employeDeletedHandler != null) EventBus.EmployeDeleted -= _employeDeletedHandler;
+
+            if (_avanceAddedHandler != null) EventBus.AvanceAdded -= _avanceAddedHandler;
+            if (_avanceUpdatedHandler != null) EventBus.AvanceUpdated -= _avanceUpdatedHandler;
+            if (_avanceDeletedHandler != null) EventBus.AvanceDeleted -= _avanceDeletedHandler;
+
+            if (_absenceAddedHandler != null) EventBus.AbsenceAdded -= _absenceAddedHandler;
+            if (_absenceUpdatedHandler != null) EventBus.AbsenceUpdated -= _absenceUpdatedHandler;
+            if (_absenceDeletedHandler != null) EventBus.AbsenceDeleted -= _absenceDeletedHandler;
+
+            if (_dataChangedHandler != null) EventBus.DataChanged -= _dataChangedHandler;
+        }
+
+        private async void RefreshReport()
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(RefreshReport));
+                return;
+            }
+
+            try
+            {
+                // Mettre à jour le statut pour indiquer le rafraîchissement automatique
+                if (lblStatus != null)
+                {
+                    lblStatus.Text = "Mise à jour automatique...";
+                    lblStatus.ForeColor = Color.FromArgb(52, 152, 219);
+                }
+
+                await LoadCurrentWeekReport();
+            }
+            catch (Exception ex)
+            {
+                // Log l'erreur silencieusement pour ne pas perturber l'utilisateur
+                Console.WriteLine($"Erreur rafraîchissement automatique du rapport: {ex.Message}");
+                if (lblStatus != null)
+                {
+                    lblStatus.Text = "Erreur lors de la mise à jour automatique";
+                    lblStatus.ForeColor = Color.FromArgb(231, 76, 60);
+                }
+            }
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            UnsubscribeFromEvents();
+            base.OnFormClosed(e);
         }
     }
 }

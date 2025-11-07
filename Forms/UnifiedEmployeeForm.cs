@@ -20,6 +20,7 @@ namespace GestionEmployes.Forms
         private List<Avance> _avances;
         private List<Absence> _absences;
         private Employe _selectedEmploye;
+        private dynamic _selectedOperation; // Pour stocker l'opération sélectionnée (Avance ou Absence)
 
         // Employee Section Controls
         private DataGridView dgvEmployees;
@@ -42,6 +43,7 @@ namespace GestionEmployes.Forms
         private DateTimePicker dtpDate;
         private Label lblAmountLabel;
         private Button btnAddOperation;
+        private Button btnUpdateOperation;
         private Button btnDeleteOperation;
         private Button btnClearOperation;
         private Label lblOperationCount;
@@ -58,6 +60,8 @@ namespace GestionEmployes.Forms
         private Color InfoColor = Color.FromArgb(52, 152, 219);       // Bleu info
         private Color CardBackground = Color.FromArgb(248, 249, 250); // Fond carte
         private Color TextColor = Color.FromArgb(33, 37, 41);         // Texte principal
+        private Color HeaderColor = Color.FromArgb(52, 73, 94);       // Couleur en-têtes (comme SupplierDetailsForm)
+        private Color FilterPanelColor = Color.FromArgb(236, 240, 241); // Fond panneaux formulaire
 
         public UnifiedEmployeeForm(IEmployeService employeService, IAvanceService avanceService, IAbsenceService absenceService)
         {
@@ -109,7 +113,7 @@ namespace GestionEmployes.Forms
             // DataGridView for Employees
             dgvEmployees = new DataGridView
             {
-                Location = new Point(20, 50),
+                Location = new Point(20, 90),
                 Size = new Size(card.Width - 40, 280),
                 AutoGenerateColumns = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
@@ -118,7 +122,8 @@ namespace GestionEmployes.Forms
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.Fixed3D,
                 AllowUserToAddRows = false,
-                Font = new Font("Segoe UI", 10F)
+                Font = new Font("Segoe UI", 10F),
+                RowHeadersVisible = false
             };
 
             // Style amélioré pour le DataGridView
@@ -126,10 +131,11 @@ namespace GestionEmployes.Forms
             {
                 BackColor = PrimaryColor,
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 11F, FontStyle.Regular),
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
                 Alignment = DataGridViewContentAlignment.MiddleCenter
             };
             dgvEmployees.ColumnHeadersHeight = 45;
+            dgvEmployees.EnableHeadersVisualStyles = false;
 
             dgvEmployees.DefaultCellStyle = new DataGridViewCellStyle
             {
@@ -194,96 +200,126 @@ namespace GestionEmployes.Forms
             dgvEmployees.SelectionChanged += (s, e) => DgvEmployees_SelectionChanged();
             card.Controls.Add(dgvEmployees);
 
-            // Input fields - Row 1
-            int inputY = 350;
-            int col1X = 20, col2X = (card.Width - 40) / 2 + 10;
+            // Input fields - Row 1 (uniform spacing below grid: 50px)
+            int inputY = 420;
+            // Background panel for the employee form area
+            var employeeFormBg = new Panel
+            {
+                Location = new Point(15, inputY),
+                Size = new Size(card.Width - 40, 420),
+                BackColor = FilterPanelColor,
+                BorderStyle = BorderStyle.None,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+            card.Controls.Add(employeeFormBg);
+            int innerY = 25; // extra top padding to avoid clipping
+            int col1X = 30;  // extra left padding to avoid clipping first characters
+            int empFieldWidth = (employeeFormBg.Width - 110) / 2; // leave a 50px gap + extra padding
+            int col2X = col1X + empFieldWidth + 50;
 
-            var lblCin = CreateLabel("CIN *", col1X, inputY);
-            txtCin = CreateTextBox(col1X, inputY + 25, (card.Width - 60) / 2, 40);
-            card.Controls.Add(lblCin);
-            card.Controls.Add(txtCin);
+            // CORRECTION: Labels avec fond blanc pour meilleure lisibilité
+            var lblCin = CreateLabel("CIN *", col1X, innerY, empFieldWidth);
+            txtCin = CreateTextBox(col1X, innerY + 25, empFieldWidth, 40);
+            employeeFormBg.Controls.Add(lblCin);
+            employeeFormBg.Controls.Add(txtCin);
 
-            var lblNom = CreateLabel("Nom *", col2X, inputY);
-            txtNom = CreateTextBox(col2X, inputY + 25, (card.Width - 60) / 2, 40);
-            card.Controls.Add(lblNom);
-            card.Controls.Add(txtNom);
+            var lblNom = CreateLabel("Nom *", col2X, innerY, empFieldWidth);
+            txtNom = CreateTextBox(col2X, innerY + 25, empFieldWidth, 40);
+            employeeFormBg.Controls.Add(lblNom);
+            employeeFormBg.Controls.Add(txtNom);
 
             // Input fields - Row 2
-            inputY += 80;
+            innerY += 80;
 
-            var lblPrenom = CreateLabel("Prénom *", col1X, inputY);
-            txtPrenom = CreateTextBox(col1X, inputY + 25, (card.Width - 60) / 2, 40);
-            card.Controls.Add(lblPrenom);
-            card.Controls.Add(txtPrenom);
+            var lblPrenom = CreateLabel("Prénom *", col1X, innerY, empFieldWidth);
+            txtPrenom = CreateTextBox(col1X, innerY + 25, empFieldWidth, 40);
+            employeeFormBg.Controls.Add(lblPrenom);
+            employeeFormBg.Controls.Add(txtPrenom);
 
-            var lblUtilisateur = CreateLabel("Utilisateur *", col2X, inputY);
-            txtUtilisateur = CreateTextBox(col2X, inputY + 25, (card.Width - 60) / 2, 40);
-            card.Controls.Add(lblUtilisateur);
-            card.Controls.Add(txtUtilisateur);
+            var lblUtilisateur = CreateLabel("Utilisateur *", col2X, innerY, empFieldWidth);
+            txtUtilisateur = CreateTextBox(col2X, innerY + 25, empFieldWidth, 40);
+            employeeFormBg.Controls.Add(lblUtilisateur);
+            employeeFormBg.Controls.Add(txtUtilisateur);
 
             // Input fields - Row 3
-            inputY += 80;
+            innerY += 80;
 
-            var lblSalaire = CreateLabel("Salaire (DH)", col1X, inputY);
-            txtSalaire = CreateTextBox(col1X, inputY + 25, (card.Width - 60) / 2, 40);
-            card.Controls.Add(lblSalaire);
-            card.Controls.Add(txtSalaire);
+            var lblSalaire = CreateLabel("Salaire (DH)", col1X, innerY, empFieldWidth);
+            txtSalaire = CreateTextBox(col1X, innerY + 25, empFieldWidth, 40);
+            employeeFormBg.Controls.Add(lblSalaire);
+            employeeFormBg.Controls.Add(txtSalaire);
 
-            // Buttons - Row 4
-            inputY += 100;
-            int buttonWidth = (card.Width - 100) / 4;
-            btnAddEmployee = CreateButton("Ajouter", col1X, inputY, SuccessColor);
-            btnUpdateEmployee = CreateButton("Modifier", col1X + buttonWidth + 10, inputY, InfoColor);
-            btnDeleteEmployee = CreateButton("Supprimer", col1X + (buttonWidth + 10) * 2, inputY, DangerColor);
-            btnClearEmployee = CreateButton("Effacer", col1X + (buttonWidth + 10) * 3, inputY, WarningColor);
+            // Buttons - 2 per row
+            innerY += 100;
+            int empButtonWidth = 180;
+            int empButtonHeight = 50;
+            int empColSpacing = 200; // x offset between columns
 
-            // Adjust button sizes
-            btnAddEmployee.Size = new Size(buttonWidth, 50);
-            btnUpdateEmployee.Size = new Size(buttonWidth, 50);
-            btnDeleteEmployee.Size = new Size(buttonWidth, 50);
-            btnClearEmployee.Size = new Size(buttonWidth, 50);
+            btnAddEmployee = CreateButton("Ajouter", col1X, innerY, SuccessColor);
+            btnAddEmployee.Size = new Size(empButtonWidth, empButtonHeight);
+
+            btnUpdateEmployee = CreateButton("Modifier", col1X + empColSpacing, innerY, InfoColor);
+            btnUpdateEmployee.Size = new Size(empButtonWidth, empButtonHeight);
+
+            btnDeleteEmployee = CreateButton("Supprimer", col1X, innerY + 60, DangerColor);
+            btnDeleteEmployee.Size = new Size(empButtonWidth, empButtonHeight);
+
+            btnClearEmployee = CreateButton("Effacer", col1X + empColSpacing, innerY + 60, WarningColor);
+            btnClearEmployee.Size = new Size(empButtonWidth, empButtonHeight);
 
             btnAddEmployee.Click += BtnAddEmployee_Click;
             btnUpdateEmployee.Click += BtnUpdateEmployee_Click;
             btnDeleteEmployee.Click += BtnDeleteEmployee_Click;
             btnClearEmployee.Click += BtnClearEmployee_Click;
 
-            card.Controls.Add(btnAddEmployee);
-            card.Controls.Add(btnUpdateEmployee);
-            card.Controls.Add(btnDeleteEmployee);
-            card.Controls.Add(btnClearEmployee);
+            employeeFormBg.Controls.Add(btnAddEmployee);
+            employeeFormBg.Controls.Add(btnUpdateEmployee);
+            employeeFormBg.Controls.Add(btnDeleteEmployee);
+            employeeFormBg.Controls.Add(btnClearEmployee);
 
             // Employee count label
             lblEmployeeCount = new Label
             {
-                Location = new Point(col1X, inputY + 65),
+                Location = new Point(20, employeeFormBg.Bottom + 12),
                 Size = new Size(card.Width - 40, 25),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 ForeColor = PrimaryColor,
                 Text = "Employés: 0",
-                TextAlign = ContentAlignment.MiddleCenter
+                TextAlign = ContentAlignment.MiddleCenter,
+                BackColor = Color.Transparent
             };
             card.Controls.Add(lblEmployeeCount);
-
-            int shiftAmount = 30;
-            lblNom.Left += shiftAmount;
-            txtNom.Left += shiftAmount;
-            lblUtilisateur.Left += shiftAmount;
-            txtUtilisateur.Left += shiftAmount;
         }
 
         // ======================== OPERATION SECTION ========================
         private void CreateOperationSection(Panel card)
         {
-            // Top section - Selection ComboBoxes
-            int inputY = 50;
+            // Place DataGridView on top, form below (switched)
+            // DataGridView for Operations on top
+            int gridTopY = 90;
+            // Top section - Form fields start below grid, with extra spacing
+            int inputY = 420;
             int col1X = 20, col2X = 20;
 
-            var lblEmployeSelect = CreateLabel("Sélectionner Employé *", col1X, inputY);
+            // Background panel for the operations form area
+            var operationFormBg = new Panel
+            {
+                Location = new Point(15, inputY),
+                Size = new Size(card.Width - 40, 420),
+                BackColor = FilterPanelColor,
+                BorderStyle = BorderStyle.None,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+            card.Controls.Add(operationFormBg);
+
+            int opInnerY = 20;
+
+            // CORRECTION: Label avec largeur spécifique
+            var lblEmployeSelect = CreateLabel("Sélectionner Employé *", col1X, opInnerY, card.Width - 40);
             cmbEmployeSelect = new ComboBox
             {
-                Location = new Point(col1X, inputY + 25),
-                Size = new Size(card.Width - 40, 40),
+                Location = new Point(col1X, opInnerY + 25),
+                Size = new Size(card.Width - 480, 40),
                 DisplayMember = "ToString",
                 ValueMember = "Cin",
                 DropDownStyle = ComboBoxStyle.DropDownList,
@@ -292,18 +328,26 @@ namespace GestionEmployes.Forms
                 BackColor = Color.White,
                 ForeColor = TextColor
             };
-            cmbEmployeSelect.SelectedIndexChanged += (s, e) => { UpdateOperationGrid(); RefreshOperationForm(); };
-            card.Controls.Add(lblEmployeSelect);
-            card.Controls.Add(cmbEmployeSelect);
+            cmbEmployeSelect.SelectedIndexChanged += (s, e) =>
+            {
+                UpdateOperationGrid();
+                if (_selectedOperation == null) // Ne réinitialiser que si on n'est pas en mode modification
+                {
+                    RefreshOperationForm();
+                }
+            };
+            operationFormBg.Controls.Add(lblEmployeSelect);
+            operationFormBg.Controls.Add(cmbEmployeSelect);
 
             // Operation type and amount row
-            inputY += 90;
-            int fieldWidth = (card.Width - 60) / 2;
+            opInnerY += 90;
+            int fieldWidth = (operationFormBg.Width - 80) / 2; // leave a 40px gap between columns
 
-            var lblOperationType = CreateLabel("Type d'Opération *", col1X, inputY);
+            // CORRECTION: Labels avec largeur spécifique
+            var lblOperationType = CreateLabel("Type d'Opération *", col1X, opInnerY, fieldWidth);
             cmbOperationType = new ComboBox
             {
-                Location = new Point(col1X, inputY + 25),
+                Location = new Point(col1X, opInnerY + 25),
                 Size = new Size(fieldWidth, 40),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Font = new Font("Segoe UI", 10F),
@@ -314,36 +358,36 @@ namespace GestionEmployes.Forms
             cmbOperationType.Items.AddRange(new[] { "Avance", "Absence" });
             cmbOperationType.SelectedIndex = 0;
             cmbOperationType.SelectedIndexChanged += CmbOperationType_SelectedIndexChanged;
-            card.Controls.Add(lblOperationType);
-            card.Controls.Add(cmbOperationType);
+            operationFormBg.Controls.Add(lblOperationType);
+            operationFormBg.Controls.Add(cmbOperationType);
 
             // Amount/Penalty field
-            lblAmountLabel = CreateLabel("Montant (DH) *", col1X + fieldWidth + 20, inputY);
-            txtAmount = CreateTextBox(col1X + fieldWidth + 20, inputY + 25, fieldWidth, 40);
-            card.Controls.Add(lblAmountLabel);
-            card.Controls.Add(txtAmount);
+            lblAmountLabel = CreateLabel("Montant (DH) *", col1X + fieldWidth + 40, opInnerY, fieldWidth);
+            txtAmount = CreateTextBox(col1X + fieldWidth + 40, opInnerY + 25, fieldWidth, 40);
+            operationFormBg.Controls.Add(lblAmountLabel);
+            operationFormBg.Controls.Add(txtAmount);
 
             // Date picker
-            inputY += 90;
-            var lblDate = CreateLabel("Date *", col1X, inputY);
+            opInnerY += 90;
+            // CORRECTION: Label avec largeur spécifique
+            var lblDate = CreateLabel("Date *", col1X, opInnerY, card.Width - 40);
             dtpDate = new DateTimePicker
             {
-                Location = new Point(col1X, inputY + 25),
-                Size = new Size(card.Width - 40, 40),
+                Location = new Point(col1X, opInnerY + 25),
+                Size = new Size(card.Width - 480, 40),
                 Format = DateTimePickerFormat.Short,
                 Value = DateTime.Today,
                 Font = new Font("Segoe UI", 10F),
                 BackColor = Color.White,
                 ForeColor = TextColor
             };
-            card.Controls.Add(lblDate);
-            card.Controls.Add(dtpDate);
+            operationFormBg.Controls.Add(lblDate);
+            operationFormBg.Controls.Add(dtpDate);
 
             // DataGridView for Operations
-            inputY += 90;
             dgvOperations = new DataGridView
             {
-                Location = new Point(20, inputY),
+                Location = new Point(20, gridTopY),
                 Size = new Size(card.Width - 40, 280),
                 AutoGenerateColumns = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
@@ -352,7 +396,8 @@ namespace GestionEmployes.Forms
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.Fixed3D,
                 AllowUserToAddRows = false,
-                Font = new Font("Segoe UI", 10F)
+                Font = new Font("Segoe UI", 10F),
+                RowHeadersVisible = false
             };
 
             // Style amélioré pour le DataGridView des opérations
@@ -360,10 +405,11 @@ namespace GestionEmployes.Forms
             {
                 BackColor = PrimaryColor,
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 11F, FontStyle.Regular),
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
                 Alignment = DataGridViewContentAlignment.MiddleCenter
             };
             dgvOperations.ColumnHeadersHeight = 45;
+            dgvOperations.EnableHeadersVisualStyles = false;
 
             dgvOperations.DefaultCellStyle = new DataGridViewCellStyle
             {
@@ -422,37 +468,45 @@ namespace GestionEmployes.Forms
                 }
             });
 
+            dgvOperations.SelectionChanged += (s, e) => DgvOperations_SelectionChanged();
             card.Controls.Add(dgvOperations);
 
-            // Operation Buttons
-            inputY += 300;
-            int buttonWidth = (card.Width - 80) / 3;
-            btnAddOperation = CreateButton("Ajouter", col2X, inputY, SuccessColor);
-            btnDeleteOperation = CreateButton("Supprimer", col2X + buttonWidth + 10, inputY, DangerColor);
-            btnClearOperation = CreateButton("Effacer", col2X + (buttonWidth + 10) * 2, inputY, WarningColor);
+            // Operation Buttons (2 per row for consistency)
+            int buttonWidth = 180;
+            int buttonHeight = 50;
+            int opBtnY = opInnerY + 90;
+            int opBtnColSpacing = 200;
+            btnAddOperation = CreateButton("Ajouter", col2X, opBtnY, SuccessColor);
+            btnUpdateOperation = CreateButton("Modifier", col2X + opBtnColSpacing, opBtnY, InfoColor);
+            btnDeleteOperation = CreateButton("Supprimer", col2X, opBtnY + 60, DangerColor);
+            btnClearOperation = CreateButton("Effacer", col2X + opBtnColSpacing, opBtnY + 60, WarningColor);
 
             // Adjust button sizes
-            btnAddOperation.Size = new Size(buttonWidth, 50);
-            btnDeleteOperation.Size = new Size(buttonWidth, 50);
-            btnClearOperation.Size = new Size(buttonWidth, 50);
+            btnAddOperation.Size = new Size(buttonWidth, buttonHeight);
+            btnUpdateOperation.Size = new Size(buttonWidth, buttonHeight);
+            btnDeleteOperation.Size = new Size(buttonWidth, buttonHeight);
+            btnClearOperation.Size = new Size(buttonWidth, buttonHeight);
 
             btnAddOperation.Click += BtnAddOperation_Click;
+            btnUpdateOperation.Click += BtnUpdateOperation_Click;
             btnDeleteOperation.Click += BtnDeleteOperation_Click;
             btnClearOperation.Click += BtnClearOperation_Click;
 
-            card.Controls.Add(btnAddOperation);
-            card.Controls.Add(btnDeleteOperation);
-            card.Controls.Add(btnClearOperation);
+            operationFormBg.Controls.Add(btnAddOperation);
+            operationFormBg.Controls.Add(btnUpdateOperation);
+            operationFormBg.Controls.Add(btnDeleteOperation);
+            operationFormBg.Controls.Add(btnClearOperation);
 
             // Operation count label
             lblOperationCount = new Label
             {
-                Location = new Point(col2X, inputY + 65),
+                Location = new Point(20, operationFormBg.Bottom + 10),
                 Size = new Size(card.Width - 40, 25),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 ForeColor = PrimaryColor,
                 Text = "Opérations: 0",
-                TextAlign = ContentAlignment.MiddleCenter
+                TextAlign = ContentAlignment.MiddleCenter,
+                BackColor = Color.Transparent
             };
             card.Controls.Add(lblOperationCount);
         }
@@ -464,35 +518,56 @@ namespace GestionEmployes.Forms
             {
                 Location = new Point(x, y),
                 Size = new Size(width, height),
-                BackColor = CardBackground,
-                Padding = new Padding(15),
+                BackColor = Color.White,
+                Padding = new Padding(20),
                 BorderStyle = BorderStyle.FixedSingle
+            };
+
+            // Header panel styled like SupplierDetailsForm
+            var headerPanel = new Panel
+            {
+                Location = new Point(0, 0),
+                Size = new Size(width - 40, 70),
+                BackColor = HeaderColor,
+                Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top
             };
 
             var titleLabel = new Label
             {
-                Text = title,
+                Text = title.ToUpperInvariant(),
                 Font = new Font("Segoe UI", 16F, FontStyle.Bold),
-                ForeColor = PrimaryColor,
-                Location = new Point(15, 10),
+                ForeColor = Color.White,
+                Location = new Point(20, 20),
                 AutoSize = true
             };
-            card.Controls.Add(titleLabel);
+            headerPanel.Controls.Add(titleLabel);
+            card.Controls.Add(headerPanel);
 
             return card;
         }
 
-        private Label CreateLabel(string text, int x, int y)
+        // CORRECTION: Nouvelle méthode CreateLabel avec largeur paramétrable
+        private Label CreateLabel(string text, int x, int y, int width)
         {
             return new Label
             {
                 Text = text,
                 Location = new Point(x, y),
-                Size = new Size(400, 20),
+                Size = new Size(width, 25),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                ForeColor = TextColor,
-                AutoSize = false
+                ForeColor = HeaderColor,
+                AutoSize = false,
+                Padding = new Padding(6, 0, 0, 0),
+                TextAlign = ContentAlignment.MiddleLeft,
+                //BackColor = Color.White, // CORRECTION: Fond blanc pour meilleure lisibilité
+                UseCompatibleTextRendering = true
             };
+        }
+
+        // CORRECTION: Ancienne méthode conservée pour compatibilité
+        private Label CreateLabel(string text, int x, int y)
+        {
+            return CreateLabel(text, x, y, 400); // Valeur par défaut
         }
 
         private TextBox CreateTextBox(int x, int y, int width, int height)
@@ -741,6 +816,8 @@ namespace GestionEmployes.Forms
         {
             txtAmount.Text = "";
             dtpDate.Value = DateTime.Today;
+            cmbOperationType.Enabled = true;
+            _selectedOperation = null;
         }
 
         private void UpdateOperationGrid()
@@ -757,28 +834,32 @@ namespace GestionEmployes.Forms
             // Ajouter les avances
             foreach (var avance in _avances.Where(a => a.EmployeCin == employe.Cin))
             {
+                var emp = _employes.FirstOrDefault(e => e.Cin == avance.EmployeCin);
                 operations.Add(new
                 {
                     Type = "Avance",
-                    EmployeeName = employe.Nom + " " + employe.Prenom,
+                    EmployeeName = emp != null ? emp.Nom + " " + emp.Prenom : "",
                     Amount = avance.Montant,
                     Date = avance.DateAvance,
                     Id = avance.Id,
-                    OperationType = "Avance"
+                    OperationType = "Avance",
+                    EmployeCin = avance.EmployeCin
                 });
             }
 
             // Ajouter les absences
             foreach (var absence in _absences.Where(a => a.EmployeCin == employe.Cin))
             {
+                var emp = _employes.FirstOrDefault(e => e.Cin == absence.EmployeCin);
                 operations.Add(new
                 {
                     Type = "Absence",
-                    EmployeeName = employe.Nom + " " + employe.Prenom,
+                    EmployeeName = emp != null ? emp.Nom + " " + emp.Prenom : "",
                     Amount = absence.Penalite,
                     Date = absence.DateAbsence,
                     Id = absence.Id,
-                    OperationType = "Absence"
+                    OperationType = "Absence",
+                    EmployeCin = absence.EmployeCin
                 });
             }
 
@@ -790,12 +871,55 @@ namespace GestionEmployes.Forms
             txtAmount.Text = "";
             dtpDate.Value = DateTime.Today;
             cmbOperationType.SelectedIndex = 0;
+            cmbOperationType.Enabled = true; // Réactiver le changement de type
+            _selectedOperation = null;
+            dgvOperations.ClearSelection();
+        }
+
+        private void DgvOperations_SelectionChanged()
+        {
+            if (dgvOperations.SelectedRows.Count > 0)
+            {
+                _selectedOperation = dgvOperations.SelectedRows[0].DataBoundItem;
+                FillOperationForm(_selectedOperation);
+            }
+        }
+
+        private void FillOperationForm(dynamic operation)
+        {
+            if (operation == null) return;
+
+            string operationType = operation.GetType().GetProperty("OperationType").GetValue(operation).ToString();
+            decimal amount = (decimal)operation.GetType().GetProperty("Amount").GetValue(operation);
+            DateTime date = (DateTime)operation.GetType().GetProperty("Date").GetValue(operation);
+            string employeCin = operation.GetType().GetProperty("EmployeCin")?.GetValue(operation)?.ToString();
+
+            // Sélectionner l'employé correspondant si disponible
+            if (!string.IsNullOrEmpty(employeCin))
+            {
+                var employe = _employes.FirstOrDefault(e => e.Cin == employeCin);
+                if (employe != null)
+                {
+                    cmbEmployeSelect.SelectedItem = employe;
+                }
+            }
+
+            cmbOperationType.SelectedItem = operationType;
+            cmbOperationType.Enabled = false; // Désactiver le changement de type lors de la modification
+            txtAmount.Text = amount.ToString("N2");
+            dtpDate.Value = date;
         }
 
         private async void BtnAddOperation_Click(object sender, EventArgs e)
         {
             try
             {
+                if (_selectedOperation != null)
+                {
+                    MessageBox.Show("Veuillez d'abord effacer le formulaire ou utiliser le bouton Modifier", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 var employe = cmbEmployeSelect.SelectedItem as Employe;
                 if (employe == null)
                 {
@@ -835,6 +959,83 @@ namespace GestionEmployes.Forms
                 ClearOperationForm();
                 UpdateLabels();
                 MessageBox.Show("Opération ajoutée avec succès!", "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur: {ex.Message}", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async void BtnUpdateOperation_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (_selectedOperation == null)
+                {
+                    MessageBox.Show("Veuillez sélectionner une opération à modifier", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var employe = cmbEmployeSelect.SelectedItem as Employe;
+                if (employe == null)
+                {
+                    MessageBox.Show("Veuillez sélectionner un employé", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (!decimal.TryParse(txtAmount.Text, out decimal amount) || amount <= 0)
+                {
+                    MessageBox.Show("Montant/Pénalité doit être un nombre positif", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                string operationType = _selectedOperation.GetType().GetProperty("OperationType").GetValue(_selectedOperation).ToString();
+                long id = (long)_selectedOperation.GetType().GetProperty("Id").GetValue(_selectedOperation);
+
+                if (operationType == "Avance")
+                {
+                    var avance = await _avanceService.GetAvanceByIdAsync(id);
+                    if (avance == null)
+                    {
+                        MessageBox.Show("Avance introuvable", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    avance.Montant = amount;
+                    avance.DateAvance = dtpDate.Value.Date;
+                    avance.EmployeCin = employe.Cin;
+
+                    await _avanceService.UpdateAvanceAsync(avance);
+
+                    // Déclencher les événements pour le dashboard
+                    EventBus.OnAvanceUpdated(this, avance.Id, employe.Cin, avance.Montant);
+                    EventBus.OnDataChanged(this, "Avance modifiée");
+                }
+                else
+                {
+                    var absence = await _absenceService.GetAbsenceByIdAsync(id);
+                    if (absence == null)
+                    {
+                        MessageBox.Show("Absence introuvable", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    absence.Penalite = amount;
+                    absence.DateAbsence = dtpDate.Value.Date;
+                    absence.EmployeCin = employe.Cin;
+
+                    await _absenceService.UpdateAbsenceAsync(absence);
+
+                    // Déclencher les événements pour le dashboard
+                    EventBus.OnAbsenceUpdated(this, absence.Id, employe.Cin, absence.Penalite);
+                    EventBus.OnDataChanged(this, "Absence modifiée");
+                }
+
+                await LoadAllData();
+                UpdateOperationGrid();
+                ClearOperationForm();
+                UpdateLabels();
+                MessageBox.Show("Opération modifiée avec succès!", "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
