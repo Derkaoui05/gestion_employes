@@ -32,11 +32,11 @@ namespace GestionEmployes.Forms
         private ComboBox cmbSupplier;
         private TextBox txtFactureNumber;
         private TextBox txtFactureAmount;
-        private TextBox txtFactureAdvance;
+        private TextBox txtFactureAdvance; // LECTURE SEULE maintenant
         private DateTimePicker dtpInvoiceDate;
         private DateTimePicker dtpDueDate;
         private Button btnAddFacture;
-        private Button btnUpdateFacture;
+        private Button btnViewPayments; // NOUVEAU : Remplace "Modifier"
         private Button btnDeleteFacture;
         private Button btnClearFacture;
 
@@ -67,13 +67,33 @@ namespace GestionEmployes.Forms
 
             CreateAllControls();
             this.Load += SupplierDetailsForm_Load;
+            dgvFactures.DataBindingComplete += DgvFactures_DataBindingComplete;
 
             SubscribeToEvents();
         }
 
+        private void DgvFactures_DataBindingComplete(object sender, DataGridViewBindingCompleteEventArgs e)
+        {
+            foreach (DataGridViewRow row in dgvFactures.Rows)
+            {
+                if (row.Cells["Status"].Value != null)
+                {
+                    string status = row.Cells["Status"].Value.ToString();
+
+                    if (status == "Non payée")
+                        row.DefaultCellStyle.BackColor = Color.FromArgb(231, 76, 60);
+                    else if (status == "En cours")
+                        row.DefaultCellStyle.BackColor = Color.FromArgb(230, 126, 34);
+                    else if (status == "Payée")
+                        row.DefaultCellStyle.BackColor = Color.FromArgb(39, 174, 96);
+
+                    row.DefaultCellStyle.ForeColor = Color.White;
+                }
+            }
+        }
+
         private void SubscribeToEvents()
         {
-            // CORRECTION: Utiliser += avec des méthodes nommées
             EventBus.SupplierAdded += OnSupplierAdded;
             EventBus.SupplierUpdated += OnSupplierUpdated;
             EventBus.SupplierDeleted += OnSupplierDeleted;
@@ -84,7 +104,6 @@ namespace GestionEmployes.Forms
 
         private void UnsubscribeFromEvents()
         {
-            // CORRECTION: Utiliser -= pour se désabonner
             EventBus.SupplierAdded -= OnSupplierAdded;
             EventBus.SupplierUpdated -= OnSupplierUpdated;
             EventBus.SupplierDeleted -= OnSupplierDeleted;
@@ -93,7 +112,6 @@ namespace GestionEmployes.Forms
             EventBus.FactureDeleted -= OnFactureDeleted;
         }
 
-        // CORRECTION: Méthodes de gestion des événements
         private void OnSupplierAdded(object sender, SupplierEventArgs e)
         {
             LoadSuppliersAsync();
@@ -171,7 +189,7 @@ namespace GestionEmployes.Forms
             var leftHeaderPanel = new Panel
             {
                 Location = new Point(0, 0),
-                Size = new Size(leftPanel.Width - 40, 70),
+                Size = new Size(leftPanel.Width + 40, 70),
                 BackColor = HeaderColor,
                 Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top
             };
@@ -203,7 +221,6 @@ namespace GestionEmployes.Forms
                 RowHeadersVisible = false
             };
 
-            // Style amélioré pour le DataGridView
             dgvSuppliers.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
             {
                 BackColor = PrimaryColor,
@@ -228,7 +245,6 @@ namespace GestionEmployes.Forms
                 BackColor = Color.FromArgb(248, 250, 252)
             };
 
-            // Colonnes
             dgvSuppliers.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "ID",
@@ -260,7 +276,6 @@ namespace GestionEmployes.Forms
             int controlWidth = 400;
             int controlHeight = 40;
 
-            // Panel de formulaire Suppliers
             var formPanel = new Panel
             {
                 Location = new Point(15, inputY - 10),
@@ -270,14 +285,12 @@ namespace GestionEmployes.Forms
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
 
-            // Name
             var lblName = CreateLabel("NOM DU FOURNISSEUR *", col1X, 20);
             txtName = CreateTextBox(col1X, 50, controlWidth, controlHeight);
             formPanel.Controls.Add(lblName);
             formPanel.Controls.Add(txtName);
 
-            // Phone
-            var lblPhone = CreateLabel("TÉLÉPHONE", col1X, 110);
+            var lblPhone = CreateLabel("TÉLÉPHONE *", col1X, 110);
             txtPhone = CreateTextBox(col1X, 140, controlWidth, controlHeight);
             formPanel.Controls.Add(lblPhone);
             formPanel.Controls.Add(txtPhone);
@@ -314,11 +327,10 @@ namespace GestionEmployes.Forms
                 BorderStyle = BorderStyle.FixedSingle
             };
 
-            // Header Factures
             var rightHeaderPanel = new Panel
             {
                 Location = new Point(0, 0),
-                Size = new Size(rightPanel.Width - 40, 70),
+                Size = new Size(rightPanel.Width + 40, 70),
                 BackColor = HeaderColor,
                 Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top
             };
@@ -329,7 +341,7 @@ namespace GestionEmployes.Forms
                 Font = new Font("Segoe UI", 16F, FontStyle.Bold),
                 ForeColor = Color.White,
                 Location = new Point(20, 20),
-                AutoSize = true
+                AutoSize = true,
             };
             rightHeaderPanel.Controls.Add(rightTitle);
             rightPanel.Controls.Add(rightHeaderPanel);
@@ -350,7 +362,6 @@ namespace GestionEmployes.Forms
                 RowHeadersVisible = false
             };
 
-            // Style amélioré pour le DataGridView des factures
             dgvFactures.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
             {
                 BackColor = PrimaryColor,
@@ -375,7 +386,6 @@ namespace GestionEmployes.Forms
                 BackColor = Color.FromArgb(248, 250, 252)
             };
 
-            // Colonnes Factures
             dgvFactures.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "ID",
@@ -440,7 +450,6 @@ namespace GestionEmployes.Forms
             controlWidth = 380;
             controlHeight = 40;
 
-            // Panel de formulaire Factures
             var factureFormPanel = new Panel
             {
                 Location = new Point(15, inputY - 10),
@@ -474,13 +483,15 @@ namespace GestionEmployes.Forms
             factureFormPanel.Controls.Add(lblNumber);
             factureFormPanel.Controls.Add(txtFactureNumber);
 
-            // Ligne 2: Montant + Avance
+            // Ligne 2: Montant + Avance (LECTURE SEULE)
             var lblAmount = CreateLabel("MONTANT (DH) *", col1X, 110);
             txtFactureAmount = CreateTextBox(col1X, 140, controlWidth - 70, controlHeight);
 
-            var lblAdvance = CreateLabel("AVANCE (DH)", col2X, 110);
+            var lblAdvance = CreateLabel("AVANCE TOTALE (DH)", col2X, 110);
             txtFactureAdvance = CreateTextBox(col2X, 140, controlWidth - 70, controlHeight);
-            txtFactureAdvance.Text = "0";
+            txtFactureAdvance.ReadOnly = true; // LECTURE SEULE
+            txtFactureAdvance.BackColor = Color.FromArgb(240, 240, 240);
+            txtFactureAdvance.Text = "0.00";
 
             factureFormPanel.Controls.Add(lblAmount);
             factureFormPanel.Controls.Add(txtFactureAmount);
@@ -519,24 +530,26 @@ namespace GestionEmployes.Forms
             factureFormPanel.Controls.Add(lblDueDate);
             factureFormPanel.Controls.Add(dtpDueDate);
 
-            // ==================== FACTURES BUTTONS ====================
+            // ==================== FACTURES BUTTONS (MODIFIÉS) ====================
             int factureButtonY = 290;
             int factureButtonWidth = 180;
             int factureButtonHeight = 45;
 
             btnAddFacture = CreateButton("AJOUTER", col1X, factureButtonY, factureButtonWidth, factureButtonHeight, SuccessColor);
-            btnUpdateFacture = CreateButton("MODIFIER", col1X + 200, factureButtonY, factureButtonWidth, factureButtonHeight, InfoColor);
-            // Place two buttons per row: second row starts at factureButtonY + 60
+
+            // REMPLACE "MODIFIER" par "VOIR PAIEMENTS"
+            btnViewPayments = CreateButton("💳 PAIEMENTS", col1X + 200, factureButtonY, factureButtonWidth, factureButtonHeight, InfoColor);
+
             btnDeleteFacture = CreateButton("SUPPRIMER", col1X, factureButtonY + 60, factureButtonWidth, factureButtonHeight, DangerColor);
             btnClearFacture = CreateButton("EFFACER", col1X + 200, factureButtonY + 60, factureButtonWidth, factureButtonHeight, WarningColor);
 
             btnAddFacture.Click += BtnAddFacture_Click;
-            btnUpdateFacture.Click += BtnUpdateFacture_Click;
+            btnViewPayments.Click += BtnViewPayments_Click; // NOUVEAU
             btnDeleteFacture.Click += BtnDeleteFacture_Click;
             btnClearFacture.Click += BtnClearFacture_Click;
 
             factureFormPanel.Controls.Add(btnAddFacture);
-            factureFormPanel.Controls.Add(btnUpdateFacture);
+            factureFormPanel.Controls.Add(btnViewPayments);
             factureFormPanel.Controls.Add(btnDeleteFacture);
             factureFormPanel.Controls.Add(btnClearFacture);
 
@@ -660,16 +673,14 @@ namespace GestionEmployes.Forms
                         Amount = facture.Amount,
                         Advance = facture.Advance,
                         Remaining = remaining,
-                        Status = remaining <= 0 ? "Payée" : "En cours",
+                        Status = remaining == facture.Amount ? "Non payée" : (remaining > 0 ? "En cours" : "Payée"),
                         InvoiceDate = facture.InvoiceDate,
                         DueDate = facture.DueDate,
-                        FactureObj = facture // CORRECTION: S'assurer que FactureObj est bien assigné
+                        FactureObj = facture
                     });
                 }
 
                 dgvFactures.DataSource = displayList;
-
-                // CORRECTION: Réinitialiser la sélection après le chargement
                 _selectedFacture = null;
                 ClearFactureForm();
             }
@@ -737,7 +748,6 @@ namespace GestionEmployes.Forms
                     await LoadSuppliersComboBoxAsync();
                     ClearSupplierForm();
 
-                    // Déclencher les événements pour le dashboard
                     EventBus.OnSupplierAdded(this, supplier.ID, supplier.Name);
                     EventBus.OnDataChanged(this, "Nouveau fournisseur ajouté");
 
@@ -776,7 +786,6 @@ namespace GestionEmployes.Forms
 
                     if (_selectedSupplier != null)
                     {
-                        // Déclencher les événements pour le dashboard
                         EventBus.OnSupplierUpdated(this, _selectedSupplier.ID, _selectedSupplier.Name);
                         EventBus.OnDataChanged(this, "Fournisseur modifié");
                     }
@@ -825,7 +834,6 @@ namespace GestionEmployes.Forms
                         await LoadFacturesAsync();
                         ClearSupplierForm();
 
-                        // Déclencher les événements pour le dashboard
                         EventBus.OnSupplierDeleted(this, supplierId, supplierName);
                         EventBus.OnDataChanged(this, "Fournisseur supprimé");
 
@@ -857,7 +865,6 @@ namespace GestionEmployes.Forms
                 {
                     var displayItem = dgvFactures.SelectedRows[0].DataBoundItem;
 
-                    // CORRECTION: Utiliser la réflexion pour accéder à la propriété FactureObj
                     var factureObjProperty = displayItem.GetType().GetProperty("FactureObj");
                     if (factureObjProperty != null)
                     {
@@ -874,7 +881,6 @@ namespace GestionEmployes.Forms
                 }
                 else
                 {
-                    // CORRECTION: Réinitialiser si aucune sélection
                     _selectedFacture = null;
                 }
             }
@@ -891,7 +897,7 @@ namespace GestionEmployes.Forms
 
             txtFactureNumber.Text = facture.Number;
             txtFactureAmount.Text = facture.Amount.ToString("N2");
-            txtFactureAdvance.Text = facture.Advance.ToString("N2");
+            txtFactureAdvance.Text = facture.Advance.ToString("N2"); // Affichage en lecture seule
             dtpInvoiceDate.Value = facture.InvoiceDate;
             dtpDueDate.Value = facture.DueDate;
         }
@@ -900,11 +906,10 @@ namespace GestionEmployes.Forms
         {
             txtFactureNumber.Text = "";
             txtFactureAmount.Text = "";
-            txtFactureAdvance.Text = "0";
+            txtFactureAdvance.Text = "0.00";
             dtpInvoiceDate.Value = DateTime.Today;
             dtpDueDate.Value = DateTime.Today.AddDays(30);
 
-            // CORRECTION: Réinitialiser la sélection
             _selectedFacture = null;
 
             if (dgvFactures != null)
@@ -935,16 +940,13 @@ namespace GestionEmployes.Forms
                     return;
                 }
 
-                if (!decimal.TryParse(txtFactureAdvance.Text, out decimal advance))
-                    advance = 0;
-
                 var selectedSupplier = cmbSupplier.SelectedItem as Supplier;
                 var facture = new Facture
                 {
                     Number = txtFactureNumber.Text.Trim(),
                     SupplierId = selectedSupplier.ID,
                     Amount = amount,
-                    Advance = advance,
+                    Advance = 0, // Toujours 0 au départ
                     InvoiceDate = dtpInvoiceDate.Value,
                     DueDate = dtpDueDate.Value,
                     CreatedDate = DateTime.Now
@@ -955,7 +957,6 @@ namespace GestionEmployes.Forms
                     await LoadFacturesAsync();
                     ClearFactureForm();
 
-                    // Déclencher les événements pour le dashboard
                     EventBus.OnFactureAdded(this, facture.Id, facture.Number, facture.SupplierId, facture.Amount);
                     EventBus.OnDataChanged(this, "Nouvelle facture ajoutée");
 
@@ -968,68 +969,23 @@ namespace GestionEmployes.Forms
             }
         }
 
-        private async void BtnUpdateFacture_Click(object sender, EventArgs e)
+        // ==================== NOUVEAU: BOUTON VOIR PAIEMENTS ====================
+        private async void BtnViewPayments_Click(object sender, EventArgs e)
         {
             try
             {
-                // CORRECTION: Vérifier si _selectedFacture est null AVANT de l'utiliser
                 if (_selectedFacture == null)
                 {
                     MessageBox.Show("Veuillez sélectionner une facture", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                if (cmbSupplier.SelectedItem == null)
-                {
-                    MessageBox.Show("Veuillez sélectionner un fournisseur", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
+                // Ouvrir le formulaire de gestion des paiements
+                var paymentsForm = new PaymentsForm(_selectedFacture);
+                paymentsForm.ShowDialog();
 
-                if (string.IsNullOrWhiteSpace(txtFactureNumber.Text))
-                {
-                    MessageBox.Show("Le numéro de facture est obligatoire", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                if (!decimal.TryParse(txtFactureAmount.Text, out decimal amount) || amount <= 0)
-                {
-                    MessageBox.Show("Le montant doit être positif", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                if (!decimal.TryParse(txtFactureAdvance.Text, out decimal advance))
-                    advance = 0;
-
-                var selectedSupplier = cmbSupplier.SelectedItem as Supplier;
-
-                // CORRECTION: Vérifier que _selectedFacture n'est pas null
-                if (_selectedFacture != null)
-                {
-                    // Mettre à jour l'entité sélectionnée
-                    _selectedFacture.Number = txtFactureNumber.Text.Trim();
-                    _selectedFacture.SupplierId = selectedSupplier.ID;
-                    _selectedFacture.Amount = amount;
-                    _selectedFacture.Advance = advance;
-                    _selectedFacture.InvoiceDate = dtpInvoiceDate.Value;
-                    _selectedFacture.DueDate = dtpDueDate.Value;
-
-                    // Capturer les valeurs avant tout rafraîchissement
-                    int updatedId = _selectedFacture.Id;
-                    string updatedNumber = _selectedFacture.Number ?? "";
-                    int updatedSupplierId = _selectedFacture.SupplierId;
-                    decimal updatedAmount = _selectedFacture.Amount;
-
-                    if (_factureService.UpdateFacture(_selectedFacture))
-                    {
-                        // Déclencher les événements immédiatement, indépendamment du rafraîchissement
-                        EventBus.OnFactureUpdated(this, updatedId, updatedNumber, updatedSupplierId, updatedAmount);
-
-                        await LoadFacturesAsync();
-
-                        ClearFactureForm();
-                        MessageBox.Show("Facture modifiée avec succès!", "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                }
+                // Après fermeture du formulaire de paiements, recharger les données
+                await LoadFacturesAsync();
             }
             catch (Exception ex)
             {
@@ -1052,7 +1008,6 @@ namespace GestionEmployes.Forms
 
                 if (result == DialogResult.Yes)
                 {
-                    // Capturer les informations avant suppression/clear
                     int factureId = _selectedFacture.Id;
                     string factureNumber = _selectedFacture.Number ?? string.Empty;
                     int supplierId = _selectedFacture.SupplierId;
@@ -1060,7 +1015,6 @@ namespace GestionEmployes.Forms
 
                     if (_factureService.DeleteFacture(factureId))
                     {
-                        // Déclencher les événements immédiatement
                         EventBus.OnFactureDeleted(this, factureId, factureNumber, supplierId, factureAmount);
 
                         await LoadFacturesAsync();

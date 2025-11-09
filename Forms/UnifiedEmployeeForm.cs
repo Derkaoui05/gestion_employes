@@ -91,7 +91,7 @@ namespace GestionEmployes.Forms
                 SplitterDistance = 800, // Left panel width
                 SplitterWidth = 8,
                 BackColor = Color.FromArgb(240, 245, 249),
-                BorderStyle = BorderStyle.None
+                BorderStyle = BorderStyle.FixedSingle
             };
 
             // Left Panel - Employee Management
@@ -236,7 +236,7 @@ namespace GestionEmployes.Forms
             employeeFormBg.Controls.Add(lblPrenom);
             employeeFormBg.Controls.Add(txtPrenom);
 
-            var lblUtilisateur = CreateLabel("Utilisateur *", col2X, innerY, empFieldWidth);
+            var lblUtilisateur = CreateLabel("Utilisateur", col2X, innerY, empFieldWidth);
             txtUtilisateur = CreateTextBox(col2X, innerY + 25, empFieldWidth, 40);
             employeeFormBg.Controls.Add(lblUtilisateur);
             employeeFormBg.Controls.Add(txtUtilisateur);
@@ -244,7 +244,7 @@ namespace GestionEmployes.Forms
             // Input fields - Row 3
             innerY += 80;
 
-            var lblSalaire = CreateLabel("Salaire (DH)", col1X, innerY, empFieldWidth);
+            var lblSalaire = CreateLabel("Salaire (DH) *", col1X, innerY, empFieldWidth);
             txtSalaire = CreateTextBox(col1X, innerY + 25, empFieldWidth, 40);
             employeeFormBg.Controls.Add(lblSalaire);
             employeeFormBg.Controls.Add(txtSalaire);

@@ -22,7 +22,6 @@ namespace GestionEmployes.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"Erreur initialisation TransactionService: {ex.Message}");
-                Console.WriteLine($"Stack: {ex.StackTrace}");
                 throw;
             }
         }
@@ -37,15 +36,15 @@ namespace GestionEmployes.Services
                     _context = DatabaseHelper.CreateNewContext();
 
                 return _context.Set<Transaction>()
+                    .AsNoTracking()
                     .Include(t => t.Facture)
-                    .Include(t => t.Employee)
+                    .Include(t => t.Facture.Supplier)
                     .OrderByDescending(t => t.TransactionDate)
                     .ToList();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"❌ Erreur GetAllTransactions: {ex.Message}");
-                Console.WriteLine($"Inner Exception: {ex.InnerException?.Message}");
                 return new List<Transaction>();
             }
         }
@@ -58,6 +57,7 @@ namespace GestionEmployes.Services
                     _context = DatabaseHelper.CreateNewContext();
 
                 return _context.Set<Transaction>()
+                    .AsNoTracking()
                     .Include(t => t.Facture)
                     .Where(t => t.FactureId == factureId)
                     .OrderByDescending(t => t.TransactionDate)
@@ -70,26 +70,6 @@ namespace GestionEmployes.Services
             }
         }
 
-        public List<Transaction> GetTransactionsByEmployee(string employeeCin)
-        {
-            try
-            {
-                if (_context == null)
-                    _context = DatabaseHelper.CreateNewContext();
-
-                return _context.Set<Transaction>()
-                    .Include(t => t.Employee)
-                    .Where(t => t.EmployeeCin == employeeCin)
-                    .OrderByDescending(t => t.TransactionDate)
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Erreur GetTransactionsByEmployee: {ex.Message}");
-                return new List<Transaction>();
-            }
-        }
-
         public Transaction GetTransactionById(int id)
         {
             try
@@ -98,8 +78,8 @@ namespace GestionEmployes.Services
                     _context = DatabaseHelper.CreateNewContext();
 
                 return _context.Set<Transaction>()
+                    .AsNoTracking()
                     .Include(t => t.Facture)
-                    .Include(t => t.Employee)
                     .FirstOrDefault(t => t.Id == id);
             }
             catch (Exception ex)
@@ -117,11 +97,32 @@ namespace GestionEmployes.Services
                     _context = DatabaseHelper.CreateNewContext();
 
                 if (transaction == null)
-                    throw new ArgumentNullException(nameof(transaction), "La transaction ne peut pas être null");
+                    throw new ArgumentNullException(nameof(transaction));
+
+                // Vérifier que la facture existe
+                var facture = _context.Set<Facture>().Find(transaction.FactureId);
+                if (facture == null)
+                {
+                    Console.WriteLine($"❌ Facture non trouvée: {transaction.FactureId}");
+                    return false;
+                }
+
+                // Vérifier que le paiement ne dépasse pas le reste à payer
+                decimal totalPaid = GetTotalPaidByFacture(transaction.FactureId);
+                decimal remaining = facture.Amount - totalPaid;
+
+                if (transaction.Amount > remaining)
+                {
+                    Console.WriteLine($"❌ Le montant du paiement ({transaction.Amount}) dépasse le reste à payer ({remaining})");
+                    return false;
+                }
 
                 transaction.CreatedDate = DateTime.Now;
                 _context.Set<Transaction>().Add(transaction);
                 _context.SaveChanges();
+
+                // Mettre à jour l'avance totale de la facture
+                UpdateFactureAdvance(transaction.FactureId);
 
                 Console.WriteLine($"✅ Transaction ajoutée: {transaction.Amount} DH");
                 return true;
@@ -130,7 +131,6 @@ namespace GestionEmployes.Services
             {
                 Console.WriteLine($"❌ Erreur AddTransaction: {ex.Message}");
                 Console.WriteLine($"Inner Exception: {ex.InnerException?.Message}");
-                Console.WriteLine($"Stack: {ex.StackTrace}");
                 return false;
             }
         }
@@ -149,15 +149,35 @@ namespace GestionEmployes.Services
                     return false;
                 }
 
-                existing.FactureId = transaction.FactureId;
-                existing.Type = transaction.Type;
+                // Vérifier que le nouveau montant ne dépasse pas le reste à payer
+                var facture = _context.Set<Facture>().Find(transaction.FactureId);
+                if (facture == null)
+                {
+                    Console.WriteLine($"❌ Facture non trouvée: {transaction.FactureId}");
+                    return false;
+                }
+
+                decimal totalPaidExcludingCurrent = GetTotalPaidByFacture(transaction.FactureId) - existing.Amount;
+                decimal remaining = facture.Amount - totalPaidExcludingCurrent;
+
+                if (transaction.Amount > remaining)
+                {
+                    Console.WriteLine($"❌ Le nouveau montant ({transaction.Amount}) dépasse le reste à payer ({remaining})");
+                    return false;
+                }
+
                 existing.Amount = transaction.Amount;
                 existing.TransactionDate = transaction.TransactionDate;
+                existing.Description = transaction.Description;
                 existing.PaymentMethod = transaction.PaymentMethod;
                 existing.Reference = transaction.Reference;
-                existing.Description = transaction.Description;
+                existing.Type = transaction.Type;
 
                 _context.SaveChanges();
+
+                // Mettre à jour l'avance totale de la facture
+                UpdateFactureAdvance(transaction.FactureId);
+
                 Console.WriteLine($"✅ Transaction modifiée: {transaction.Amount} DH");
                 return true;
             }
@@ -182,10 +202,14 @@ namespace GestionEmployes.Services
                     return false;
                 }
 
+                int factureId = transaction.FactureId;
                 _context.Set<Transaction>().Remove(transaction);
                 _context.SaveChanges();
 
-                Console.WriteLine($"✅ Transaction supprimée: {transaction.Amount} DH");
+                // Mettre à jour l'avance totale de la facture
+                UpdateFactureAdvance(factureId);
+
+                Console.WriteLine($"✅ Transaction supprimée");
                 return true;
             }
             catch (Exception ex)
@@ -195,9 +219,42 @@ namespace GestionEmployes.Services
             }
         }
 
-        // ==================== SEARCH & STATISTICS ====================
+        // ==================== BUSINESS LOGIC ====================
 
-        public decimal GetTotalByFacture(int factureId)
+        /// <summary>
+        /// Recalcule et met à jour l'avance totale d'une facture en fonction de toutes ses transactions
+        /// </summary>
+        private void UpdateFactureAdvance(int factureId)
+        {
+            try
+            {
+                var facture = _context.Set<Facture>().Find(factureId);
+                if (facture == null)
+                {
+                    Console.WriteLine($"❌ Facture non trouvée: {factureId}");
+                    return;
+                }
+
+                // Calculer la somme de toutes les transactions de type "Paiement" ou "Avance"
+                decimal totalPaid = _context.Set<Transaction>()
+                    .Where(t => t.FactureId == factureId)
+                    .Sum(t => (decimal?)t.Amount) ?? 0;
+
+                facture.Advance = totalPaid;
+                _context.SaveChanges();
+
+                Console.WriteLine($"✅ Avance mise à jour pour facture {factureId}: {totalPaid} DH");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Erreur UpdateFactureAdvance: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Obtient le total payé pour une facture
+        /// </summary>
+        public decimal GetTotalPaidByFacture(int factureId)
         {
             try
             {
@@ -210,69 +267,39 @@ namespace GestionEmployes.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Erreur GetTotalByFacture: {ex.Message}");
+                Console.WriteLine($"❌ Erreur GetTotalPaidByFacture: {ex.Message}");
                 return 0;
             }
         }
 
-        public decimal GetTotalBySupplier(int supplierId)
+        /// <summary>
+        /// Obtient le reste à payer pour une facture
+        /// </summary>
+        public decimal GetRemainingByFacture(int factureId)
         {
             try
             {
                 if (_context == null)
                     _context = DatabaseHelper.CreateNewContext();
 
-                var factureIds = _context.Set<Facture>()
-                    .Where(f => f.SupplierId == supplierId)
-                    .Select(f => f.Id)
-                    .ToList();
+                var facture = _context.Set<Facture>().AsNoTracking().FirstOrDefault(f => f.Id == factureId);
+                if (facture == null)
+                    return 0;
 
-                return _context.Set<Transaction>()
-                    .Where(t => factureIds.Contains(t.FactureId))
-                    .Sum(t => (decimal?)t.Amount) ?? 0;
+                decimal totalPaid = GetTotalPaidByFacture(factureId);
+                return facture.Amount - totalPaid;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Erreur GetTotalBySupplier: {ex.Message}");
+                Console.WriteLine($"❌ Erreur GetRemainingByFacture: {ex.Message}");
                 return 0;
             }
         }
 
-        public decimal GetTotalByDateRange(DateTime startDate, DateTime endDate)
-        {
-            try
-            {
-                if (_context == null)
-                    _context = DatabaseHelper.CreateNewContext();
-
-                return _context.Set<Transaction>()
-                    .Where(t => t.TransactionDate >= startDate && t.TransactionDate <= endDate)
-                    .Sum(t => (decimal?)t.Amount) ?? 0;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Erreur GetTotalByDateRange: {ex.Message}");
-                return 0;
-            }
-        }
-
-        public int CountTransactions()
-        {
-            try
-            {
-                if (_context == null)
-                    _context = DatabaseHelper.CreateNewContext();
-
-                return _context.Set<Transaction>().Count();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Erreur CountTransactions: {ex.Message}");
-                return 0;
-            }
-        }
-
-        public Dictionary<string, decimal> GetTotalByPaymentMethod()
+        /// <summary>
+        /// Compte le nombre de transactions pour une facture
+        /// </summary>
+        public int CountTransactionsByFacture(int factureId)
         {
             try
             {
@@ -280,95 +307,37 @@ namespace GestionEmployes.Services
                     _context = DatabaseHelper.CreateNewContext();
 
                 return _context.Set<Transaction>()
+                    .Count(t => t.FactureId == factureId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Erreur CountTransactionsByFacture: {ex.Message}");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Obtient les statistiques des transactions par méthode de paiement
+        /// </summary>
+        public Dictionary<string, decimal> GetPaymentMethodStats(int factureId)
+        {
+            try
+            {
+                if (_context == null)
+                    _context = DatabaseHelper.CreateNewContext();
+
+                return _context.Set<Transaction>()
+                    .Where(t => t.FactureId == factureId)
                     .GroupBy(t => t.PaymentMethod)
-                    .Select(g => new { Method = g.Key, Total = g.Sum(t => t.Amount) })
-                    .ToDictionary(x => x.Method ?? "Non spécifié", x => x.Total);
+                    .ToDictionary(
+                        g => g.Key ?? "Non spécifié",
+                        g => g.Sum(t => t.Amount)
+                    );
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Erreur GetTotalByPaymentMethod: {ex.Message}");
+                Console.WriteLine($"❌ Erreur GetPaymentMethodStats: {ex.Message}");
                 return new Dictionary<string, decimal>();
-            }
-        }
-
-        public Dictionary<string, decimal> GetTotalByTransactionType()
-        {
-            try
-            {
-                if (_context == null)
-                    _context = DatabaseHelper.CreateNewContext();
-
-                return _context.Set<Transaction>()
-                    .GroupBy(t => t.Type)
-                    .Select(g => new { Type = g.Key, Total = g.Sum(t => t.Amount) })
-                    .ToDictionary(x => x.Type ?? "Non spécifié", x => x.Total);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Erreur GetTotalByTransactionType: {ex.Message}");
-                return new Dictionary<string, decimal>();
-            }
-        }
-
-        public List<Transaction> GetTransactionsByDateRange(DateTime startDate, DateTime endDate)
-        {
-            try
-            {
-                if (_context == null)
-                    _context = DatabaseHelper.CreateNewContext();
-
-                return _context.Set<Transaction>()
-                    .Include(t => t.Facture)
-                    .Include(t => t.Employee)
-                    .Where(t => t.TransactionDate >= startDate && t.TransactionDate <= endDate)
-                    .OrderByDescending(t => t.TransactionDate)
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Erreur GetTransactionsByDateRange: {ex.Message}");
-                return new List<Transaction>();
-            }
-        }
-
-        public List<Transaction> SearchByReference(string reference)
-        {
-            try
-            {
-                if (_context == null)
-                    _context = DatabaseHelper.CreateNewContext();
-
-                return _context.Set<Transaction>()
-                    .Include(t => t.Facture)
-                    .Where(t => t.Reference != null && t.Reference.Contains(reference))
-                    .OrderByDescending(t => t.TransactionDate)
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Erreur SearchByReference: {ex.Message}");
-                return new List<Transaction>();
-            }
-        }
-
-        public List<Transaction> GetRecentTransactions(int count = 10)
-        {
-            try
-            {
-                if (_context == null)
-                    _context = DatabaseHelper.CreateNewContext();
-
-                return _context.Set<Transaction>()
-                    .Include(t => t.Facture)
-                    .Include(t => t.Employee)
-                    .OrderByDescending(t => t.TransactionDate)
-                    .Take(count)
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Erreur GetRecentTransactions: {ex.Message}");
-                return new List<Transaction>();
             }
         }
     }

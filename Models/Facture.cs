@@ -16,7 +16,18 @@ namespace GestionEmployes.Models
         public decimal Remaining => Amount - Advance; // Reste à payer
         public DateTime InvoiceDate { get; set; } // Date de facture
         public DateTime DueDate { get; set; } // Date d'échéance
-        public string Status => Remaining <= 0 ? "Payée" : "En cours";
+        public string Status
+        {
+            get
+            {
+                if (Remaining == Amount)
+                    return "Non payée";  // Aucune avance
+                else if (Remaining > 0)
+                    return "En cours";   // Avance partielle
+                else
+                    return "Payée";      // Tout payé
+            }
+        }
         public string Notes { get; set; }
         public DateTime CreatedDate { get; set; }
 
