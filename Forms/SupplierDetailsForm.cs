@@ -876,18 +876,24 @@ namespace GestionEmployes.Forms
 
                             cmbSupplier.SelectedValue = _selectedFacture.SupplierId;
                             _selectedSupplier = _suppliers.FirstOrDefault(s => s.ID == _selectedFacture.SupplierId);
+
+                            // Désactiver les contrôles si la facture est entièrement payée
+                            UpdateFactureControlsState();
                         }
                     }
                 }
                 else
                 {
                     _selectedFacture = null;
+                    // Réactiver les contrôles quand aucune facture n'est sélectionnée
+                    EnableFactureControls(true);
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Erreur lors de la sélection: {ex.Message}", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 _selectedFacture = null;
+                EnableFactureControls(true);
             }
         }
 
@@ -915,6 +921,61 @@ namespace GestionEmployes.Forms
             if (dgvFactures != null)
             {
                 dgvFactures.ClearSelection();
+            }
+
+            // Réactiver tous les contrôles lors de l'effacement
+            EnableFactureControls(true);
+        }
+
+        private void UpdateFactureControlsState()
+        {
+            if (_selectedFacture != null)
+            {
+                bool isFullyPaid = _selectedFacture.Remaining <= 0;
+                
+                if (isFullyPaid)
+                {
+                    // Désactiver les contrôles de modification
+                    EnableFactureControls(false);
+                    
+                    // Afficher un message informatif
+                    MessageBox.Show("Cette facture est entièrement payée. Les modifications ne sont pas autorisées.", 
+                        "Facture payée", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    // Réactiver les contrôles
+                    EnableFactureControls(true);
+                }
+            }
+        }
+
+        private void EnableFactureControls(bool enabled)
+        {
+            // Désactiver/activer les champs de saisie
+            cmbSupplier.Enabled = enabled;
+            txtFactureNumber.Enabled = enabled;
+            txtFactureAmount.Enabled = enabled;
+            dtpInvoiceDate.Enabled = enabled;
+            dtpDueDate.Enabled = enabled;
+            
+            // Les boutons de modification/suppression
+            btnDeleteFacture.Enabled = enabled;
+            
+            // Changer les couleurs pour indiquer l'état désactivé
+            if (!enabled)
+            {
+                cmbSupplier.BackColor = Color.FromArgb(240, 240, 240);
+                txtFactureNumber.BackColor = Color.FromArgb(240, 240, 240);
+                txtFactureAmount.BackColor = Color.FromArgb(240, 240, 240);
+                btnDeleteFacture.BackColor = Color.Gray;
+            }
+            else
+            {
+                cmbSupplier.BackColor = Color.White;
+                txtFactureNumber.BackColor = Color.White;
+                txtFactureAmount.BackColor = Color.White;
+                btnDeleteFacture.BackColor = DangerColor;
             }
         }
 
@@ -1000,6 +1061,14 @@ namespace GestionEmployes.Forms
                 if (_selectedFacture == null)
                 {
                     MessageBox.Show("Veuillez sélectionner une facture", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Vérifier si la facture est entièrement payée
+                if (_selectedFacture.Remaining <= 0)
+                {
+                    MessageBox.Show("Cette facture est entièrement payée, vous ne pouvez pas la modifier ou la supprimer.", 
+                        "Facture payée", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 

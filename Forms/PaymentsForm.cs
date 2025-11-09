@@ -1,5 +1,6 @@
 ﻿using GestionEmployes.Models;
 using GestionEmployes.Services;
+using GestionEmployes.Utils;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -486,6 +487,11 @@ namespace GestionEmployes.Forms
                 {
                     LoadTransactions();
                     ClearForm();
+                    
+                    // Fire events to notify other forms of the change
+                    EventBus.OnFactureUpdated(this, _facture.Id, _facture.Number, _facture.SupplierId, _facture.Amount);
+                    EventBus.OnDataChanged(this, "Paiement ajouté");
+                    
                     MessageBox.Show("Paiement enregistré avec succès!", "Succès",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
@@ -547,6 +553,11 @@ namespace GestionEmployes.Forms
                 {
                     LoadTransactions();
                     ClearForm();
+                    
+                    // Fire events to notify other forms of the change
+                    EventBus.OnFactureUpdated(this, _facture.Id, _facture.Number, _facture.SupplierId, _facture.Amount);
+                    EventBus.OnDataChanged(this, "Paiement modifié");
+                    
                     MessageBox.Show("Paiement modifié avec succès!", "Succès",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
@@ -586,6 +597,11 @@ namespace GestionEmployes.Forms
                     {
                         LoadTransactions();
                         ClearForm();
+                        
+                        // Fire events to notify other forms of the change
+                        EventBus.OnFactureUpdated(this, _facture.Id, _facture.Number, _facture.SupplierId, _facture.Amount);
+                        EventBus.OnDataChanged(this, "Paiement supprimé");
+                        
                         MessageBox.Show("Paiement supprimé avec succès!", "Succès",
                             MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
