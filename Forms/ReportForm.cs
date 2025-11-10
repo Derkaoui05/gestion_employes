@@ -31,42 +31,162 @@ namespace GestionEmployes.Forms
         private EventHandler<AbsenceEventArgs> _absenceDeletedHandler;
         private EventHandler<GenericEventArgs> _dataChangedHandler;
 
+        // Modern Colors (matching other forms)
+        private Color PrimaryColor = Color.FromArgb(41, 128, 185);
+        private Color SecondaryColor = Color.FromArgb(52, 152, 219);
+        private Color SuccessColor = Color.FromArgb(39, 174, 96);
+        private Color DangerColor = Color.FromArgb(231, 76, 60);
+        private Color WarningColor = Color.FromArgb(230, 126, 34);
+        private Color InfoColor = Color.FromArgb(52, 152, 219);
+        private Color CardBackground = Color.FromArgb(248, 249, 250);
+        private Color TextColor = Color.FromArgb(33, 37, 41);
+        private Color HeaderColor = Color.FromArgb(52, 73, 94);
+        private Color FilterPanelColor = Color.FromArgb(236, 240, 241);
+
         public ReportForm(ReportService reportService)
         {
             _reportService = reportService;
-            InitializeComponent();
-            ApplyCustomTheme();
-            SetupForm();
-            SubscribeToEvents();
-            LoadCurrentWeekReport();
-        }
-
-        private void ApplyCustomTheme()
-        {
+            
+            this.Text = "Rapports Hebdomadaires";
+            this.Size = new Size(1400, 800);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.WindowState = FormWindowState.Maximized;
             this.BackColor = Color.FromArgb(240, 245, 249);
-            this.ForeColor = Color.FromArgb(33, 37, 41);
+            this.Padding = new Padding(15);
+
+            CreateModernControls();
+            SubscribeToEvents();
+            
+            // Load data silently without showing messages during startup
+            _ = LoadCurrentWeekReportSilent();
         }
 
-        public void SetupForm()
+        private void CreateModernControls()
         {
-            this.Dock = DockStyle.Fill;
-            this.AutoSize = false;
+            // ==================== HEADER PANEL ====================
+            var headerPanel = new Panel
+            {
+                Location = new Point(0, 0),
+                Size = new Size(this.Width, 70),
+                BackColor = HeaderColor,
+                Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top
+            };
 
-            // Configuration du DataGridView
-            dgvReports.AutoGenerateColumns = false;
-            dgvReports.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvReports.MultiSelect = false;
-            dgvReports.ReadOnly = true;
-            dgvReports.Dock = DockStyle.Fill;
-            dgvReports.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvReports.BackgroundColor = Color.White;
-            dgvReports.BorderStyle = BorderStyle.Fixed3D;
-            dgvReports.GridColor = Color.FromArgb(229, 229, 229);
+            var titleLabel = new Label
+            {
+                Text = "RAPPORTS HEBDOMADAIRES",
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                ForeColor = Color.White,
+                Location = new Point(20, 20),
+                AutoSize = true
+            };
+            headerPanel.Controls.Add(titleLabel);
+            this.Controls.Add(headerPanel);
+
+            // ==================== CONTROL PANEL ====================
+            var controlPanel = new Panel
+            {
+                Location = new Point(15, 80),
+                Size = new Size(this.Width - 30, 80),
+                BackColor = FilterPanelColor,
+                BorderStyle = BorderStyle.None,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+
+            // Create modern buttons
+            btnCurrentWeek = CreateModernButton("📊 SEMAINE COURANTE", SuccessColor);
+            btnCurrentWeek.Location = new Point(20, 20);
+            btnCurrentWeek.Click += BtnCurrentWeek_Click;
+
+            btnExportExcel = CreateModernButton("📈 EXPORTER EXCEL", InfoColor);
+            btnExportExcel.Location = new Point(220, 20);
+            btnExportExcel.Click += BtnExportExcel_Click;
+
+            btnRefresh = CreateModernButton("🔄 ACTUALISER", WarningColor);
+            btnRefresh.Location = new Point(420, 20);
+            btnRefresh.Click += BtnRefresh_Click;
+
+            controlPanel.Controls.Add(btnCurrentWeek);
+            controlPanel.Controls.Add(btnExportExcel);
+            controlPanel.Controls.Add(btnRefresh);
+            this.Controls.Add(controlPanel);
+
+            // ==================== SUMMARY PANEL ====================
+            var summaryPanel = new Panel
+            {
+                Location = new Point(15, 170),
+                Size = new Size(this.Width - 30, 60),
+                BackColor = CardBackground,
+                BorderStyle = BorderStyle.FixedSingle,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+
+            lblTotalEmployees = CreateSummaryLabel("Total employés: 0", PrimaryColor);
+            lblTotalEmployees.Location = new Point(20, 15);
+
+            lblTotalAdvances = CreateSummaryLabel("Total avances: 0,00 DH", DangerColor);
+            lblTotalAdvances.Location = new Point(250, 15);
+
+            lblTotalPenalties = CreateSummaryLabel("Total pénalités: 0,00 DH", WarningColor);
+            lblTotalPenalties.Location = new Point(500, 15);
+
+            lblTotalNetSalary = CreateSummaryLabel("Total salaires nets: 0,00 DH", SuccessColor);
+            lblTotalNetSalary.Location = new Point(750, 15);
+
+            summaryPanel.Controls.Add(lblTotalEmployees);
+            summaryPanel.Controls.Add(lblTotalAdvances);
+            summaryPanel.Controls.Add(lblTotalPenalties);
+            summaryPanel.Controls.Add(lblTotalNetSalary);
+            this.Controls.Add(summaryPanel);
+
+            // ==================== STATUS PANEL ====================
+            var statusPanel = new Panel
+            {
+                Location = new Point(15, 240),
+                Size = new Size(this.Width - 30, 30),
+                BackColor = Color.Transparent,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+
+            lblStatus = new Label
+            {
+                Text = "Prêt",
+                Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+                ForeColor = InfoColor,
+                Location = new Point(5, 5),
+                AutoSize = true
+            };
+            statusPanel.Controls.Add(lblStatus);
+            this.Controls.Add(statusPanel);
+
+            // ==================== DATAGRIDVIEW ====================
+            SetupModernDataGridView();
+        }
+
+        private void SetupModernDataGridView()
+        {
+            dgvReports = new DataGridView
+            {
+                Location = new Point(15, 280),
+                Size = new Size(this.Width - 30, this.Height - 320),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+                AutoGenerateColumns = false,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                ReadOnly = true,
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.Fixed3D,
+                GridColor = Color.FromArgb(229, 229, 229),
+                AllowUserToAddRows = false,
+                RowHeadersVisible = false
+            };
+
+            this.Controls.Add(dgvReports);
 
             // Style des en-têtes de colonnes
             dgvReports.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
             {
-                BackColor = Color.FromArgb(52, 152, 219),
+                BackColor = PrimaryColor,
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 11F, FontStyle.Bold),
                 Alignment = DataGridViewContentAlignment.MiddleCenter,
@@ -74,16 +194,17 @@ namespace GestionEmployes.Forms
             };
 
             dgvReports.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.EnableResizing;
-            dgvReports.ColumnHeadersHeight = 50;
+            dgvReports.ColumnHeadersHeight = 45;
+            dgvReports.EnableHeadersVisualStyles = false;
 
             // Style des cellules
             dgvReports.DefaultCellStyle = new DataGridViewCellStyle
             {
                 Font = new Font("Segoe UI", 10F),
                 BackColor = Color.White,
-                ForeColor = Color.FromArgb(33, 37, 41),
+                ForeColor = TextColor,
                 SelectionBackColor = Color.FromArgb(220, 237, 255),
-                SelectionForeColor = Color.Black,
+                SelectionForeColor = TextColor,
                 Padding = new Padding(3)
             };
 
@@ -95,7 +216,7 @@ namespace GestionEmployes.Forms
             };
 
             dgvReports.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            dgvReports.RowHeadersVisible = false;
+            dgvReports.RowTemplate.Height = 35;
 
             // Colonnes
             dgvReports.Columns.Add(new DataGridViewTextBoxColumn
@@ -221,29 +342,83 @@ namespace GestionEmployes.Forms
                 }
             });
 
-            dgvReports.RowTemplate.Height = 40;
-            dgvReports.Font = new Font("Segoe UI", 10.5F);
-
-            // Style des boutons sans icônes
-            ApplyButtonStyle(btnCurrentWeek, Color.FromArgb(41, 128, 185), "Semaine Courante");
-            ApplyButtonStyle(btnExportExcel, Color.FromArgb(39, 174, 96), "Exporter Excel");
-            ApplyButtonStyle(btnRefresh, Color.FromArgb(52, 152, 219), "Actualiser");
-
-            // Style des labels de résumé
-            ApplySummaryLabelStyle(lblTotalEmployees, Color.FromArgb(52, 152, 219));
-            ApplySummaryLabelStyle(lblTotalAdvances, Color.FromArgb(231, 76, 60));
-            ApplySummaryLabelStyle(lblTotalPenalties, Color.FromArgb(230, 126, 34));
-            ApplySummaryLabelStyle(lblTotalNetSalary, Color.FromArgb(46, 204, 113));
-
-            // Event handlers
-            btnCurrentWeek.Click += BtnCurrentWeek_Click;
-            btnExportExcel.Click += BtnExportExcel_Click;
-            btnRefresh.Click += BtnRefresh_Click;
-
-            // Alignement des boutons côte à côte
-            ArrangeButtons();
-
             UpdateButtonStates();
+        }
+
+        private Button CreateModernButton(string text, Color backgroundColor)
+        {
+            return new Button
+            {
+                Text = text,
+                Size = new Size(180, 40),
+                Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
+                BackColor = backgroundColor,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                FlatAppearance = {
+                    BorderSize = 0,
+                    MouseOverBackColor = ControlPaint.Light(backgroundColor),
+                    MouseDownBackColor = ControlPaint.Dark(backgroundColor)
+                },
+                Cursor = Cursors.Hand
+            };
+        }
+
+        private Label CreateSummaryLabel(string text, Color color)
+        {
+            return new Label
+            {
+                Text = text,
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                ForeColor = color,
+                BackColor = Color.Transparent,
+                AutoSize = true
+            };
+        }
+
+        // Silent loading method to prevent startup messages
+        private async Task LoadCurrentWeekReportSilent()
+        {
+            try
+            {
+                if (lblStatus != null)
+                {
+                    lblStatus.Text = "Chargement en cours...";
+                    lblStatus.ForeColor = InfoColor;
+                }
+
+                _reportService = new ReportService(
+                    DatabaseHelper.CreateNewContext(),
+                    new EmployeService(DatabaseHelper.CreateNewContext()),
+                    new AvanceService(DatabaseHelper.CreateNewContext()),
+                    new AbsenceService(DatabaseHelper.CreateNewContext())
+                );
+
+                _currentReports = await _reportService.GenerateCurrentWeekReportAsync();
+                
+                if (dgvReports != null && dgvReports.IsHandleCreated)
+                {
+                    dgvReports.DataSource = _currentReports;
+                    UpdateSummaryLabels();
+                    UpdateButtonStates();
+                    
+                    if (lblStatus != null)
+                    {
+                        lblStatus.Text = $"Rapport chargé: {_currentReports?.Count ?? 0} employés";
+                        lblStatus.ForeColor = SuccessColor;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log silently without showing message box on startup
+                Console.WriteLine($"Erreur chargement initial: {ex.Message}");
+                if (lblStatus != null)
+                {
+                    lblStatus.Text = "Erreur lors du chargement initial";
+                    lblStatus.ForeColor = DangerColor;
+                }
+            }
         }
 
         private void ArrangeButtons()
@@ -295,23 +470,12 @@ namespace GestionEmployes.Forms
         {
             try
             {
-                // Mettre à jour le statut sur le thread UI
-                if (this.InvokeRequired)
-                {
-                    this.Invoke(new Action(() =>
-                    {
-                        lblStatus.Text = "Chargement du rapport de la semaine courante...";
-                        lblStatus.ForeColor = Color.FromArgb(52, 152, 219);
-                    }));
-                }
-                else
+                if (lblStatus != null)
                 {
                     lblStatus.Text = "Chargement du rapport de la semaine courante...";
-                    lblStatus.ForeColor = Color.FromArgb(52, 152, 219);
+                    lblStatus.ForeColor = InfoColor;
                 }
 
-                // Créer un nouveau ReportService avec de nouveaux contextes pour s'assurer d'avoir les données fraîches
-                // Cela évite les problèmes de cache d'Entity Framework
                 _reportService = new ReportService(
                     DatabaseHelper.CreateNewContext(),
                     new EmployeService(DatabaseHelper.CreateNewContext()),
@@ -319,50 +483,31 @@ namespace GestionEmployes.Forms
                     new AbsenceService(DatabaseHelper.CreateNewContext())
                 );
 
-                // Charger les données (peut être fait sur n'importe quel thread)
                 _currentReports = await _reportService.GenerateCurrentWeekReportAsync();
                 
-                // Mettre à jour l'UI sur le thread UI
-                if (this.InvokeRequired)
-                {
-                    this.Invoke(new Action(() =>
-                    {
-                        dgvReports.DataSource = _currentReports;
-                        dgvReports.AutoResizeColumns();
-                        UpdateSummaryLabels();
-                        UpdateButtonStates();
-                        lblStatus.Text = $"Rapport chargé: {_currentReports.Count} employés";
-                        lblStatus.ForeColor = Color.FromArgb(39, 174, 96);
-                    }));
-                }
-                else
+                if (dgvReports != null)
                 {
                     dgvReports.DataSource = _currentReports;
-                    dgvReports.AutoResizeColumns();
                     UpdateSummaryLabels();
                     UpdateButtonStates();
-                    lblStatus.Text = $"Rapport chargé: {_currentReports.Count} employés";
-                    lblStatus.ForeColor = Color.FromArgb(39, 174, 96);
+                    
+                    if (lblStatus != null)
+                    {
+                        lblStatus.Text = $"Rapport chargé: {_currentReports?.Count ?? 0} employés";
+                        lblStatus.ForeColor = SuccessColor;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                if (this.InvokeRequired)
+                // Only show message for user-initiated actions, not startup
+                MessageBox.Show($"Erreur lors du chargement du rapport: {ex.Message}", "Erreur",
+                              MessageBoxButtons.OK, MessageBoxIcon.Error);
+                              
+                if (lblStatus != null)
                 {
-                    this.Invoke(new Action(() =>
-                    {
-                        MessageBox.Show($"Erreur lors du chargement du rapport: {ex.Message}", "Erreur",
-                                      MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        lblStatus.Text = "Erreur lors du chargement";
-                        lblStatus.ForeColor = Color.FromArgb(231, 76, 60);
-                    }));
-                }
-                else
-                {
-                    MessageBox.Show($"Erreur lors du chargement du rapport: {ex.Message}", "Erreur",
-                                  MessageBoxButtons.OK, MessageBoxIcon.Error);
                     lblStatus.Text = "Erreur lors du chargement";
-                    lblStatus.ForeColor = Color.FromArgb(231, 76, 60);
+                    lblStatus.ForeColor = DangerColor;
                 }
             }
         }

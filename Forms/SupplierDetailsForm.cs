@@ -114,17 +114,49 @@ namespace GestionEmployes.Forms
 
         private void OnSupplierAdded(object sender, SupplierEventArgs e)
         {
-            LoadSuppliersAsync();
+            _isSupplierOperationInProgress = true; // Prevent facture messages
+            try
+            {
+                LoadSuppliersAsync();
+            }
+            finally
+            {
+                _isSupplierOperationInProgress = false; // Re-enable facture messages
+            }
         }
 
         private void OnSupplierUpdated(object sender, SupplierEventArgs e)
         {
-            LoadSuppliersAsync();
+            _isSupplierOperationInProgress = true; // Prevent facture messages
+            try
+            {
+                LoadSuppliersAsync();
+            }
+            finally
+            {
+                _isSupplierOperationInProgress = false; // Re-enable facture messages
+            }
         }
 
         private void OnSupplierDeleted(object sender, SupplierEventArgs e)
         {
-            LoadSuppliersAsync();
+            _isSupplierOperationInProgress = true; // Prevent facture messages
+            
+            try
+            {
+                // Clear any selected facture that might reference the deleted supplier
+                if (_selectedFacture != null && _selectedFacture.SupplierId == e.SupplierId)
+                {
+                    _selectedFacture = null;
+                    ClearFactureForm();
+                }
+                
+                LoadSuppliersAsync();
+            }
+            finally
+            {
+                _isSupplierOperationInProgress = false; // Re-enable facture messages
+            }
         }
 
         private void OnFactureAdded(object sender, FactureEventArgs e)
@@ -134,7 +166,18 @@ namespace GestionEmployes.Forms
 
         private void OnFactureUpdated(object sender, FactureEventArgs e)
         {
-            LoadFacturesAsync();
+            // Temporarily disable form loading to prevent messages when PaymentsForm updates facture
+            bool wasLoading = _isFormLoading;
+            _isFormLoading = true;
+            
+            try
+            {
+                LoadFacturesAsync();
+            }
+            finally
+            {
+                _isFormLoading = wasLoading;
+            }
         }
 
         private void OnFactureDeleted(object sender, FactureEventArgs e)
@@ -625,6 +668,11 @@ namespace GestionEmployes.Forms
             {
                 MessageBox.Show($"Erreur de chargement: {ex.Message}", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            finally
+            {
+                // Form loading is complete, allow facture messages to show
+                _isFormLoading = false;
+            }
         }
 
         private async System.Threading.Tasks.Task LoadSuppliersAsync()
@@ -659,6 +707,9 @@ namespace GestionEmployes.Forms
         {
             try
             {
+                // Clear selection BEFORE loading to prevent stale data issues
+                _selectedFacture = null;
+                
                 _factures = _factureService.GetAllFactures();
 
                 var displayList = new List<dynamic>();
@@ -681,11 +732,15 @@ namespace GestionEmployes.Forms
                 }
 
                 dgvFactures.DataSource = displayList;
-                _selectedFacture = null;
+                
+                // Ensure form is cleared and controls are in proper state
                 ClearFactureForm();
             }
             catch (Exception ex)
             {
+                // Clear selection on error to prevent stale data
+                _selectedFacture = null;
+                ClearFactureForm();
                 MessageBox.Show($"Erreur LoadFactures: {ex.Message}", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -731,6 +786,8 @@ namespace GestionEmployes.Forms
                     return;
                 }
 
+                _isSupplierOperationInProgress = true; // Prevent facture messages
+
                 var supplier = new Supplier
                 {
                     Name = txtName.Text.Trim(),
@@ -758,6 +815,10 @@ namespace GestionEmployes.Forms
             {
                 MessageBox.Show($"Erreur: {ex.Message}", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            finally
+            {
+                _isSupplierOperationInProgress = false; // Re-enable facture messages
+            }
         }
 
         private async void BtnUpdateSupplier_Click(object sender, EventArgs e)
@@ -775,6 +836,8 @@ namespace GestionEmployes.Forms
                     MessageBox.Show("Le nom est obligatoire", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
+
+                _isSupplierOperationInProgress = true; // Prevent facture messages
 
                 _selectedSupplier.Name = txtName.Text.Trim();
                 _selectedSupplier.Phone = txtPhone.Text.Trim();
@@ -797,6 +860,10 @@ namespace GestionEmployes.Forms
             catch (Exception ex)
             {
                 MessageBox.Show($"Erreur: {ex.Message}", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                _isSupplierOperationInProgress = false; // Re-enable facture messages
             }
         }
 
@@ -824,11 +891,20 @@ namespace GestionEmployes.Forms
 
                 if (result == DialogResult.Yes)
                 {
+                    _isSupplierOperationInProgress = true; // Prevent facture messages
+
                     int supplierId = _selectedSupplier.ID;
                     string supplierName = _selectedSupplier.Name;
 
                     if (_supplierService.DeleteSupplier(supplierId))
                     {
+                        // Effacer la sélection de facture si elle était liée au fournisseur supprimé
+                        if (_selectedFacture != null && _selectedFacture.SupplierId == supplierId)
+                        {
+                            _selectedFacture = null;
+                            ClearFactureForm();
+                        }
+
                         await LoadSuppliersAsync();
                         await LoadSuppliersComboBoxAsync();
                         await LoadFacturesAsync();
@@ -849,6 +925,10 @@ namespace GestionEmployes.Forms
             {
                 MessageBox.Show($"Erreur: {ex.Message}", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            finally
+            {
+                _isSupplierOperationInProgress = false; // Re-enable facture messages
+            }
         }
 
         private void BtnClearSupplier_Click(object sender, EventArgs e)
@@ -861,39 +941,57 @@ namespace GestionEmployes.Forms
         {
             try
             {
-                if (dgvFactures.SelectedRows.Count > 0 && dgvFactures.SelectedRows[0].DataBoundItem != null)
-                {
-                    var displayItem = dgvFactures.SelectedRows[0].DataBoundItem;
-
-                    var factureObjProperty = displayItem.GetType().GetProperty("FactureObj");
-                    if (factureObjProperty != null)
-                    {
-                        _selectedFacture = factureObjProperty.GetValue(displayItem) as Facture;
-
-                        if (_selectedFacture != null)
-                        {
-                            FillFactureForm(_selectedFacture);
-
-                            cmbSupplier.SelectedValue = _selectedFacture.SupplierId;
-                            _selectedSupplier = _suppliers.FirstOrDefault(s => s.ID == _selectedFacture.SupplierId);
-
-                            // Désactiver les contrôles si la facture est entièrement payée
-                            UpdateFactureControlsState();
-                        }
-                    }
-                }
-                else
+                // If no rows selected or during data loading, clear selection without showing messages
+                if (dgvFactures.SelectedRows.Count == 0 || dgvFactures.SelectedRows[0].DataBoundItem == null)
                 {
                     _selectedFacture = null;
-                    // Réactiver les contrôles quand aucune facture n'est sélectionnée
                     EnableFactureControls(true);
+                    return;
+                }
+
+                // Ensure suppliers are loaded before processing selection
+                if (_suppliers == null || !_suppliers.Any())
+                {
+                    _selectedFacture = null;
+                    EnableFactureControls(true);
+                    return;
+                }
+
+                var displayItem = dgvFactures.SelectedRows[0].DataBoundItem;
+                var factureObjProperty = displayItem.GetType().GetProperty("FactureObj");
+                
+                if (factureObjProperty != null)
+                {
+                    _selectedFacture = factureObjProperty.GetValue(displayItem) as Facture;
+
+                    if (_selectedFacture != null)
+                    {
+                        // Vérifier que le fournisseur associé existe encore avant de procéder
+                        var associatedSupplier = _suppliers.FirstOrDefault(s => s.ID == _selectedFacture.SupplierId);
+                        if (associatedSupplier == null && _selectedFacture.SupplierId > 0)
+                        {
+                            // Fournisseur supprimé, effacer la sélection sans message
+                            _selectedFacture = null;
+                            ClearFactureForm();
+                            return;
+                        }
+
+                        FillFactureForm(_selectedFacture);
+
+                        cmbSupplier.SelectedValue = _selectedFacture.SupplierId;
+                        _selectedSupplier = associatedSupplier;
+
+                        // Only check payment state for valid factures with existing suppliers
+                        UpdateFactureControlsState();
+                    }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Erreur lors de la sélection: {ex.Message}", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // Clear selection on any error without showing the payment message
                 _selectedFacture = null;
-                EnableFactureControls(true);
+                ClearFactureForm();
+                MessageBox.Show($"Erreur lors de la sélection: {ex.Message}", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -910,35 +1008,73 @@ namespace GestionEmployes.Forms
 
         private void ClearFactureForm()
         {
+            // Clear selection FIRST to prevent any event triggers during cleanup
+            _selectedFacture = null;
+            
             txtFactureNumber.Text = "";
             txtFactureAmount.Text = "";
             txtFactureAdvance.Text = "0.00";
             dtpInvoiceDate.Value = DateTime.Today;
             dtpDueDate.Value = DateTime.Today.AddDays(30);
 
-            _selectedFacture = null;
-
             if (dgvFactures != null)
             {
                 dgvFactures.ClearSelection();
             }
 
-            // Réactiver tous les contrôles lors de l'effacement
+            // Always enable controls when clearing the form
             EnableFactureControls(true);
         }
 
+        // Add a flag to prevent message during supplier operations
+        private bool _isSupplierOperationInProgress = false;
+        
+        // Add a flag to prevent message during form startup
+        private bool _isFormLoading = true;
+
         private void UpdateFactureControlsState()
         {
-            if (_selectedFacture != null)
+            // DON'T show message during supplier operations OR during form startup
+            if (_isSupplierOperationInProgress || _isFormLoading)
             {
-                bool isFullyPaid = _selectedFacture.Remaining <= 0;
+                EnableFactureControls(true);
+                return;
+            }
+
+            // Validation: Vérifier que la facture sélectionnée existe et est valide
+            if (_selectedFacture == null)
+            {
+                EnableFactureControls(true);
+                return;
+            }
+
+            // Validation: Vérifier que le fournisseur existe encore
+            if (_selectedFacture.SupplierId > 0)
+            {
+                var supplierExists = _suppliers?.Any(s => s.ID == _selectedFacture.SupplierId) ?? false;
+                if (!supplierExists)
+                {
+                    // Le fournisseur a été supprimé, effacer la sélection
+                    _selectedFacture = null;
+                    ClearFactureForm();
+                    EnableFactureControls(true);
+                    return;
+                }
+            }
+
+            // Validation: Vérifier que les données de la facture sont cohérentes
+            try
+            {
+                // Use the Remaining property from the facture object instead of calculating
+                decimal remaining = _selectedFacture.Remaining;
+                bool isFullyPaid = remaining <= 0;
                 
                 if (isFullyPaid)
                 {
                     // Désactiver les contrôles de modification
                     EnableFactureControls(false);
                     
-                    // Afficher un message informatif
+                    // Only show message if it's a user-initiated facture selection (not during supplier operations)
                     MessageBox.Show("Cette facture est entièrement payée. Les modifications ne sont pas autorisées.", 
                         "Facture payée", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
@@ -948,7 +1084,15 @@ namespace GestionEmployes.Forms
                     EnableFactureControls(true);
                 }
             }
+            catch (Exception)
+            {
+                // En cas d'erreur de calcul, effacer la sélection et réactiver les contrôles
+                _selectedFacture = null;
+                ClearFactureForm();
+                EnableFactureControls(true);
+            }
         }
+
 
         private void EnableFactureControls(bool enabled)
         {
@@ -1041,6 +1185,9 @@ namespace GestionEmployes.Forms
                     return;
                 }
 
+                // Temporarily disable messages during payments operations
+                _isSupplierOperationInProgress = true;
+
                 // Ouvrir le formulaire de gestion des paiements
                 var paymentsForm = new PaymentsForm(_selectedFacture);
                 paymentsForm.ShowDialog();
@@ -1051,6 +1198,10 @@ namespace GestionEmployes.Forms
             catch (Exception ex)
             {
                 MessageBox.Show($"Erreur: {ex.Message}", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                _isSupplierOperationInProgress = false;
             }
         }
 
